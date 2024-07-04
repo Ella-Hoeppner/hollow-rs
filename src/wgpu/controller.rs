@@ -1,73 +1,18 @@
-use std::{marker::PhantomData, ops::Deref, sync::Arc};
+use std::sync::Arc;
 
 use bytemuck::NoUninit;
-use wgpu::{util::DeviceExt, Buffer as WGPUBuffer, BufferUsages};
 use winit::window::Window;
+
+use super::{
+  bind::{BindGroupLayout, BindGroupLayoutDescriptorBuilder},
+  buffer::{Buffer, BufferBuilder},
+};
 
 pub struct WGPUController<'window> {
   pub surface: wgpu::Surface<'window>,
   pub device: wgpu::Device,
   pub queue: wgpu::Queue,
   pub config: wgpu::SurfaceConfiguration,
-}
-
-pub struct Buffer<T: NoUninit> {
-  _phantom: PhantomData<T>,
-  pub buffer: WGPUBuffer,
-}
-
-impl<T: NoUninit> Deref for Buffer<T> {
-  type Target = WGPUBuffer;
-  fn deref(&self) -> &Self::Target {
-    &self.buffer
-  }
-}
-
-pub struct BufferBuilder<'c, 's, 'w, 'window, T: NoUninit> {
-  initial_contents: &'c [T],
-  label: Option<&'s str>,
-  wgpu: &'w WGPUController<'window>,
-  usage: Option<BufferUsages>,
-}
-
-impl<'c, 's, 'w, 'window, T: NoUninit> BufferBuilder<'c, 's, 'w, 'window, T> {
-  fn new(wgpu: &'w WGPUController<'window>, initial_contents: &'c [T]) -> Self {
-    Self {
-      initial_contents,
-      label: None,
-      usage: None,
-      wgpu: wgpu,
-    }
-  }
-  pub fn with_label(mut self, label: &'s str) -> Self {
-    self.label = Some(label);
-    self
-  }
-  pub fn with_usage(mut self, usage: BufferUsages) -> Self {
-    self.usage = Some(usage);
-    self
-  }
-  pub fn build(self) -> Buffer<T> {
-    Buffer {
-      _phantom: PhantomData,
-      buffer: self.wgpu.device.create_buffer_init(
-        &wgpu::util::BufferInitDescriptor {
-          label: self.label,
-          contents: bytemuck::cast_slice(self.initial_contents),
-          usage: self.usage.unwrap_or(
-            BufferUsages::COPY_SRC
-              | BufferUsages::COPY_DST
-              | BufferUsages::INDEX
-              | BufferUsages::VERTEX
-              | BufferUsages::UNIFORM
-              | BufferUsages::STORAGE
-              | BufferUsages::INDIRECT
-              | BufferUsages::QUERY_RESOLVE,
-          ),
-        },
-      ),
-    }
-  }
 }
 
 impl<'window> WGPUController<'window> {
@@ -131,5 +76,15 @@ impl<'window> WGPUController<'window> {
     contents: &'a [T],
   ) -> BufferBuilder<'a, '_, 'w, 'window, T> {
     BufferBuilder::new(self, contents)
+  }
+  pub fn create_bind_group_layout<'a>(
+    &self,
+    descriptor_builder: &'a mut BindGroupLayoutDescriptorBuilder<'a>,
+  ) -> BindGroupLayout {
+    BindGroupLayout::new(
+      self
+        .device
+        .create_bind_group_layout(descriptor_builder.build()),
+    )
   }
 }

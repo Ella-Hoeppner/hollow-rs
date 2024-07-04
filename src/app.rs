@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Instant};
 use take_mut::take;
 
-use crate::{sketch::Sketch, wgpu::WGPUController};
+use crate::{sketch::Sketch, wgpu::controller::WGPUController};
 use winit::{
   event::{Event, WindowEvent},
   event_loop::EventLoop,

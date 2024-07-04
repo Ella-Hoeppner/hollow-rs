@@ -1,11 +1,13 @@
 use hollow_rs::{
   sketch::Sketch,
-  wgpu::{Buffer, WGPUController},
+  wgpu::{
+    bind::BindGroupLayoutDescriptorBuilder, buffer::Buffer,
+    controller::WGPUController,
+  },
 };
 use wgpu::{
-  util::DeviceExt, BindGroup, BindGroupDescriptor, BindGroupEntry,
-  BindGroupLayoutDescriptor, BindGroupLayoutEntry, CommandEncoder,
-  RenderPipeline, RenderPipelineDescriptor, TextureView,
+  BindGroup, CommandEncoder, RenderPipeline, RenderPipelineDescriptor,
+  TextureView,
 };
 
 struct SimpleSketch {
@@ -28,32 +30,11 @@ impl Sketch for SimpleSketch {
       .build_buffer(&[2, 0, 1, 0, 2, 3])
       .with_usage(wgpu::BufferUsages::INDEX)
       .build();
-    let primary_bind_group_layout =
-      wgpu
-        .device
-        .create_bind_group_layout(&BindGroupLayoutDescriptor {
-          entries: &[BindGroupLayoutEntry {
-            binding: 0,
-            visibility: wgpu::ShaderStages::VERTEX
-              | wgpu::ShaderStages::FRAGMENT,
-            ty: wgpu::BindingType::Buffer {
-              ty: wgpu::BufferBindingType::Uniform,
-              has_dynamic_offset: false,
-              min_binding_size: None,
-            },
-            count: None,
-          }],
-          label: Some("Primary Bind Group Layout"),
-        });
+    let primary_bind_group_layout = wgpu.create_bind_group_layout(
+      &mut BindGroupLayoutDescriptorBuilder::new().with_default_entry(),
+    );
     let primary_bind_group =
-      wgpu.device.create_bind_group(&BindGroupDescriptor {
-        layout: &primary_bind_group_layout,
-        entries: &[BindGroupEntry {
-          binding: 0,
-          resource: dimensions_buffer.as_entire_binding(),
-        }],
-        label: Some("Primary Bind Group"),
-      });
+      primary_bind_group_layout.create_group(wgpu, &[&dimensions_buffer]);
     let corner_vertex_buffer_layout = wgpu::VertexBufferLayout {
       array_stride: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
       step_mode: wgpu::VertexStepMode::Vertex,
