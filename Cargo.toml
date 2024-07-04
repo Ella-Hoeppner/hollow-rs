@@ -8,3 +8,4 @@ winit = "0.29"
 wgpu = "0.19"
 pollster = "0.3"
 bytemuck = { version = "1.14", features = [ "derive" ] }
+take_mut = "0.2.2"

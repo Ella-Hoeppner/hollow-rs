@@ -1,3 +1,3 @@
 pub mod app;
-pub mod renderer;
+pub mod sketch;
 pub mod wgpu;
