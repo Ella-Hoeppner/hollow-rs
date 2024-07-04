@@ -1,31 +1,30 @@
-use hollow_rs::{app::run_app, sketch::Sketch, wgpu::WGPUController};
+use hollow_rs::{
+  sketch::Sketch,
+  wgpu::{Buffer, WGPUController},
+};
 use wgpu::{
   util::DeviceExt, BindGroup, BindGroupDescriptor, BindGroupEntry,
-  BindGroupLayoutDescriptor, BindGroupLayoutEntry, Buffer, CommandEncoder,
+  BindGroupLayoutDescriptor, BindGroupLayoutEntry, CommandEncoder,
   RenderPipeline, RenderPipelineDescriptor, TextureView,
 };
 
 struct SimpleSketch {
   primary_bind_group: BindGroup,
-  corner_vertex_buffer: Buffer,
-  corner_index_buffer: Buffer,
-  dimensions_buffer: Buffer,
+  corner_vertex_buffer: Buffer<[f32; 2]>,
+  corner_index_buffer: Buffer<u16>,
+  dimensions_buffer: Buffer<[f32; 2]>,
   background_pipeline: RenderPipeline,
 }
 
 impl Sketch for SimpleSketch {
-  fn start(wgpu: &WGPUController) -> Self {
+  fn init(wgpu: &WGPUController) -> Self {
     let shader = wgpu
       .device
       .create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
-    let dimensions_buffer =
-      wgpu
-        .device
-        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-          label: Some("Dimensions Buffer"),
-          contents: bytemuck::cast_slice(&[[0f32, 0f32]]),
-          usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        });
+    let dimensions_buffer = wgpu.buffer(&[[0f32, 0f32]]);
+    let corner_vertex_buffer =
+      wgpu.buffer(&[[-1., -1.], [1., -1.], [1., 1.], [-1., 1.]]);
+    let corner_index_buffer = wgpu.buffer(&[2, 0, 1, 0, 2, 3]);
     let primary_bind_group_layout =
       wgpu
         .device
@@ -52,25 +51,6 @@ impl Sketch for SimpleSketch {
         }],
         label: Some("Primary Bind Group"),
       });
-    let corner_vertices: &[[f32; 2]; 4] =
-      &[[-1., -1.], [1., -1.], [1., 1.], [-1., 1.]];
-    let corner_indeces: &[u16; 6] = &[2, 0, 1, 0, 2, 3];
-    let corner_vertex_buffer =
-      wgpu
-        .device
-        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-          label: Some("Form Vertex Buffer"),
-          contents: bytemuck::cast_slice(corner_vertices),
-          usage: wgpu::BufferUsages::VERTEX,
-        });
-    let corner_index_buffer =
-      wgpu
-        .device
-        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-          label: Some("Form Index Buffer"),
-          contents: bytemuck::cast_slice(corner_indeces),
-          usage: wgpu::BufferUsages::INDEX,
-        });
     let corner_vertex_buffer_layout = wgpu::VertexBufferLayout {
       array_stride: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
       step_mode: wgpu::VertexStepMode::Vertex,
@@ -176,5 +156,5 @@ impl Sketch for SimpleSketch {
 }
 
 fn main() {
-  pollster::block_on(run_app::<SimpleSketch>());
+  SimpleSketch::run();
 }

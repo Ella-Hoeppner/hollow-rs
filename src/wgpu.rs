@@ -1,5 +1,7 @@
-use std::sync::Arc;
+use std::{marker::PhantomData, ops::Deref, sync::Arc};
 
+use bytemuck::NoUninit;
+use wgpu::{util::DeviceExt, Buffer as WGPUBuffer};
 use winit::window::Window;
 
 pub struct WGPUController<'window> {
@@ -7,6 +9,27 @@ pub struct WGPUController<'window> {
   pub device: wgpu::Device,
   pub queue: wgpu::Queue,
   pub config: wgpu::SurfaceConfiguration,
+}
+
+pub struct Buffer<T: NoUninit> {
+  _phantom: PhantomData<T>,
+  pub buffer: WGPUBuffer,
+}
+
+impl<T: NoUninit> Buffer<T> {
+  fn new(buffer: WGPUBuffer) -> Self {
+    Self {
+      _phantom: PhantomData,
+      buffer,
+    }
+  }
+}
+
+impl<T: NoUninit> Deref for Buffer<T> {
+  type Target = WGPUBuffer;
+  fn deref(&self) -> &Self::Target {
+    &self.buffer
+  }
 }
 
 impl WGPUController<'_> {
@@ -61,5 +84,22 @@ impl WGPUController<'_> {
       queue,
       config,
     }
+  }
+  pub fn buffer<T: NoUninit>(&self, contents: &[T]) -> Buffer<T> {
+    use wgpu::BufferUsages;
+    Buffer::new(self.device.create_buffer_init(
+      &wgpu::util::BufferInitDescriptor {
+        label: None,
+        contents: bytemuck::cast_slice(contents),
+        usage: BufferUsages::COPY_SRC
+          | BufferUsages::COPY_DST
+          | BufferUsages::INDEX
+          | BufferUsages::VERTEX
+          | BufferUsages::UNIFORM
+          | BufferUsages::STORAGE
+          | BufferUsages::INDIRECT
+          | BufferUsages::QUERY_RESOLVE,
+      },
+    ))
   }
 }

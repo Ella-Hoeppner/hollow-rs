@@ -1,9 +1,9 @@
 use wgpu::{CommandEncoder, TextureView};
 
-use crate::wgpu::WGPUController;
+use crate::{app::run_sketch, wgpu::WGPUController};
 
-pub trait Sketch {
-  fn start(wgpu: &WGPUController) -> Self;
+pub trait Sketch: Sized {
+  fn init(wgpu: &WGPUController) -> Self;
   fn update(
     self,
     wgpu: &WGPUController,
@@ -12,4 +12,7 @@ pub trait Sketch {
     surface_pixel_dimensions: (usize, usize),
     t: f32,
   ) -> Self;
+  fn run() {
+    pollster::block_on(run_sketch::<Self>());
+  }
 }
