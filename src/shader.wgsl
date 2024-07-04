@@ -19,5 +19,6 @@ fn vertex(in: VertexInput) -> VertexOutput {
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4f {
-  return vec4f(1., 0., 0., 1.);
+  let pos = in.vertex_pos.xy/dimensions;
+  return vec4f(pow(vec3f(pos, 0.),vec3f(2.2)), 1.);
 }
