@@ -1,7 +1,7 @@
 use std::{marker::PhantomData, ops::Deref, sync::Arc};
 
 use bytemuck::NoUninit;
-use wgpu::{util::DeviceExt, Buffer as WGPUBuffer};
+use wgpu::{util::DeviceExt, Buffer as WGPUBuffer, BufferUsages};
 use winit::window::Window;
 
 pub struct WGPUController<'window> {
@@ -16,15 +16,6 @@ pub struct Buffer<T: NoUninit> {
   pub buffer: WGPUBuffer,
 }
 
-impl<T: NoUninit> Buffer<T> {
-  fn new(buffer: WGPUBuffer) -> Self {
-    Self {
-      _phantom: PhantomData,
-      buffer,
-    }
-  }
-}
-
 impl<T: NoUninit> Deref for Buffer<T> {
   type Target = WGPUBuffer;
   fn deref(&self) -> &Self::Target {
@@ -32,7 +23,54 @@ impl<T: NoUninit> Deref for Buffer<T> {
   }
 }
 
-impl WGPUController<'_> {
+pub struct BufferBuilder<'c, 's, 'w, 'window, T: NoUninit> {
+  initial_contents: &'c [T],
+  label: Option<&'s str>,
+  wgpu: &'w WGPUController<'window>,
+  usage: Option<BufferUsages>,
+}
+
+impl<'c, 's, 'w, 'window, T: NoUninit> BufferBuilder<'c, 's, 'w, 'window, T> {
+  fn new(wgpu: &'w WGPUController<'window>, initial_contents: &'c [T]) -> Self {
+    Self {
+      initial_contents,
+      label: None,
+      usage: None,
+      wgpu: wgpu,
+    }
+  }
+  pub fn with_label(mut self, label: &'s str) -> Self {
+    self.label = Some(label);
+    self
+  }
+  pub fn with_usage(mut self, usage: BufferUsages) -> Self {
+    self.usage = Some(usage);
+    self
+  }
+  pub fn build(self) -> Buffer<T> {
+    Buffer {
+      _phantom: PhantomData,
+      buffer: self.wgpu.device.create_buffer_init(
+        &wgpu::util::BufferInitDescriptor {
+          label: self.label,
+          contents: bytemuck::cast_slice(self.initial_contents),
+          usage: self.usage.unwrap_or(
+            BufferUsages::COPY_SRC
+              | BufferUsages::COPY_DST
+              | BufferUsages::INDEX
+              | BufferUsages::VERTEX
+              | BufferUsages::UNIFORM
+              | BufferUsages::STORAGE
+              | BufferUsages::INDIRECT
+              | BufferUsages::QUERY_RESOLVE,
+          ),
+        },
+      ),
+    }
+  }
+}
+
+impl<'window> WGPUController<'window> {
   pub async fn new(window: Arc<Window>) -> Self {
     let size = window.inner_size();
     let wgpu_instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
@@ -86,20 +124,12 @@ impl WGPUController<'_> {
     }
   }
   pub fn buffer<T: NoUninit>(&self, contents: &[T]) -> Buffer<T> {
-    use wgpu::BufferUsages;
-    Buffer::new(self.device.create_buffer_init(
-      &wgpu::util::BufferInitDescriptor {
-        label: None,
-        contents: bytemuck::cast_slice(contents),
-        usage: BufferUsages::COPY_SRC
-          | BufferUsages::COPY_DST
-          | BufferUsages::INDEX
-          | BufferUsages::VERTEX
-          | BufferUsages::UNIFORM
-          | BufferUsages::STORAGE
-          | BufferUsages::INDIRECT
-          | BufferUsages::QUERY_RESOLVE,
-      },
-    ))
+    BufferBuilder::new(self, contents).build()
+  }
+  pub fn build_buffer<'a, 'w, T: NoUninit>(
+    &'w self,
+    contents: &'a [T],
+  ) -> BufferBuilder<'a, '_, 'w, 'window, T> {
+    BufferBuilder::new(self, contents)
   }
 }

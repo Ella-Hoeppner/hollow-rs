@@ -24,7 +24,10 @@ impl Sketch for SimpleSketch {
     let dimensions_buffer = wgpu.buffer(&[[0f32, 0f32]]);
     let corner_vertex_buffer =
       wgpu.buffer(&[[-1., -1.], [1., -1.], [1., 1.], [-1., 1.]]);
-    let corner_index_buffer = wgpu.buffer(&[2, 0, 1, 0, 2, 3]);
+    let corner_index_buffer = wgpu
+      .build_buffer(&[2, 0, 1, 0, 2, 3])
+      .with_usage(wgpu::BufferUsages::INDEX)
+      .build();
     let primary_bind_group_layout =
       wgpu
         .device
