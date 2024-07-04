@@ -14,6 +14,7 @@ struct SimpleSketch {
   primary_bind_group: BindGroup,
   corner_vertex_buffer: Buffer<[f32; 2]>,
   corner_index_buffer: Buffer<u16>,
+  time_buffer: Buffer<f32>,
   dimensions_buffer: Buffer<[f32; 2]>,
   background_pipeline: RenderPipeline,
 }
@@ -23,7 +24,8 @@ impl Sketch for SimpleSketch {
     let shader = wgpu
       .device
       .create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
-    let dimensions_buffer = wgpu.buffer(&[[0f32, 0f32]]);
+    let time_buffer = wgpu.buffer(&[0.]);
+    let dimensions_buffer = wgpu.buffer(&[[0., 0.]]);
     let corner_vertex_buffer =
       wgpu.buffer(&[[-1., -1.], [1., -1.], [1., 1.], [-1., 1.]]);
     let corner_index_buffer = wgpu
@@ -31,10 +33,15 @@ impl Sketch for SimpleSketch {
       .with_usage(wgpu::BufferUsages::INDEX)
       .build();
     let primary_bind_group_layout = wgpu.create_bind_group_layout(
-      &mut BindGroupLayoutDescriptorBuilder::new().with_default_entry(),
+      &mut BindGroupLayoutDescriptorBuilder::new()
+        .with_default_entry()
+        .with_default_entry(),
     );
-    let primary_bind_group =
-      primary_bind_group_layout.create_group(wgpu, &[&dimensions_buffer]);
+    let primary_bind_group = primary_bind_group_layout
+      .build_group()
+      .with_buffer_entry(&dimensions_buffer)
+      .with_buffer_entry(&time_buffer)
+      .build(wgpu);
     let corner_vertex_buffer_layout = wgpu::VertexBufferLayout {
       array_stride: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
       step_mode: wgpu::VertexStepMode::Vertex,
@@ -86,6 +93,7 @@ impl Sketch for SimpleSketch {
           multiview: None,
         });
     Self {
+      time_buffer,
       dimensions_buffer,
       primary_bind_group,
       corner_vertex_buffer,
@@ -99,7 +107,7 @@ impl Sketch for SimpleSketch {
     surface_view: TextureView,
     encoder: &mut CommandEncoder,
     surface_pixel_dimensions: (usize, usize),
-    _t: f32,
+    t: f32,
   ) -> Self {
     wgpu.queue.write_buffer(
       &self.dimensions_buffer,
@@ -109,6 +117,9 @@ impl Sketch for SimpleSketch {
         surface_pixel_dimensions.1 as f32,
       ]),
     );
+    wgpu
+      .queue
+      .write_buffer(&self.time_buffer, 0, bytemuck::cast_slice(&[t]));
 
     {
       let mut render_pass =

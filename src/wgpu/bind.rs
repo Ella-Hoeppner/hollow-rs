@@ -97,6 +97,43 @@ impl<'s> BindGroupLayoutDescriptorBuilder<'s> {
   }
 }
 
+pub struct BindGroupBuilder<'l, 's, 'a> {
+  layout: &'l BindGroupLayout,
+  label: Option<&'s str>,
+  entries: Vec<BindGroupEntry<'a>>,
+}
+
+impl<'l, 's, 'a> BindGroupBuilder<'l, 's, 'a> {
+  pub fn new(layout: &'l BindGroupLayout) -> Self {
+    Self {
+      layout,
+      label: None,
+      entries: vec![],
+    }
+  }
+  pub fn with_label(mut self, label: &'s str) -> Self {
+    self.label = Some(label);
+    self
+  }
+  pub fn with_buffer_entry<'b: 'a, T: NoUninit>(
+    mut self,
+    buffer: &'b Buffer<T>,
+  ) -> Self {
+    self.entries.push(BindGroupEntry {
+      binding: self.entries.len() as u32,
+      resource: buffer.as_entire_binding(),
+    });
+    self
+  }
+  pub fn build(self, wgpu: &WGPUController) -> BindGroup {
+    wgpu.device.create_bind_group(&BindGroupDescriptor {
+      layout: self.layout,
+      entries: &self.entries,
+      label: None,
+    })
+  }
+}
+
 pub struct BindGroupLayout {
   pub layout: WGPUBindGroupLayout,
 }
@@ -104,24 +141,8 @@ impl BindGroupLayout {
   pub fn new(layout: WGPUBindGroupLayout) -> Self {
     Self { layout }
   }
-  pub fn create_group(
-    &self,
-    wgpu: &WGPUController,
-    buffers: &[&Buffer<impl NoUninit>],
-  ) -> BindGroup {
-    let entries: Vec<_> = buffers
-      .iter()
-      .enumerate()
-      .map(|(i, buffer)| BindGroupEntry {
-        binding: i as u32,
-        resource: buffer.as_entire_binding(),
-      })
-      .collect();
-    wgpu.device.create_bind_group(&BindGroupDescriptor {
-      layout: &self,
-      entries: &entries,
-      label: None,
-    })
+  pub fn build_group<'l>(&'l self) -> BindGroupBuilder<'l, '_, '_> {
+    BindGroupBuilder::new(self)
   }
 }
 impl Deref for BindGroupLayout {

@@ -1,4 +1,5 @@
 @group(0) @binding(0) var<uniform> dimensions: vec2f;
+@group(0) @binding(1) var<uniform> time: f32;
 
 // Forms
 
@@ -20,5 +21,6 @@ fn vertex(in: VertexInput) -> VertexOutput {
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4f {
   let pos = in.vertex_pos.xy/dimensions;
-  return vec4f(pow(vec3f(pos, 0.),vec3f(2.2)), 1.);
+  let osc = sin(time*9.)*0.5+0.5;
+  return vec4f(pow(vec3f(pos, osc),vec3f(2.2)), 1.);
 }

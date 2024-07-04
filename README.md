@@ -1,7 +1,6 @@
 ## to-do
 * abstract away boilerplate in constructing wgpu objects
   * shaders
-  * bind groups
   * VertexBufferLayout
   * pipelines
   * render passes
