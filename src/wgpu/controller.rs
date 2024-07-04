@@ -68,14 +68,31 @@ impl<'window> WGPUController<'window> {
       config,
     }
   }
-  pub fn buffer<T: NoUninit>(&self, contents: &[T]) -> Buffer<T> {
-    BufferBuilder::new(self, contents).build()
-  }
   pub fn build_buffer<'a, 'w, T: NoUninit>(
     &'w self,
     contents: &'a [T],
   ) -> BufferBuilder<'a, '_, 'w, 'window, T> {
     BufferBuilder::new(self, contents)
+  }
+  pub fn buffer<T: NoUninit>(&self, contents: T) -> Buffer<T> {
+    BufferBuilder::new(self, &[contents]).build()
+  }
+  pub fn array_buffer<T: NoUninit>(&self, contents: &[T]) -> Buffer<T> {
+    BufferBuilder::new(self, contents).build()
+  }
+  pub fn write_buffer<T: NoUninit>(&self, buffer: &Buffer<T>, data: T) {
+    self
+      .queue
+      .write_buffer(buffer, 0, bytemuck::cast_slice(&[data]))
+  }
+  pub fn write_array_buffer<T: NoUninit>(
+    &self,
+    buffer: &Buffer<T>,
+    data: &[T],
+  ) {
+    self
+      .queue
+      .write_buffer(buffer, 0, bytemuck::cast_slice(data))
   }
   pub fn create_bind_group_layout<'a>(
     &self,

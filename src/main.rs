@@ -24,10 +24,10 @@ impl Sketch for SimpleSketch {
     let shader = wgpu
       .device
       .create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
-    let time_buffer = wgpu.buffer(&[0.]);
-    let dimensions_buffer = wgpu.buffer(&[[0., 0.]]);
+    let time_buffer = wgpu.buffer(0.);
+    let dimensions_buffer = wgpu.buffer([0., 0.]);
     let corner_vertex_buffer =
-      wgpu.buffer(&[[-1., -1.], [1., -1.], [1., 1.], [-1., 1.]]);
+      wgpu.array_buffer(&[[-1., -1.], [1., -1.], [1., 1.], [-1., 1.]]);
     let corner_index_buffer = wgpu
       .build_buffer(&[2, 0, 1, 0, 2, 3])
       .with_usage(wgpu::BufferUsages::INDEX)
@@ -109,18 +109,14 @@ impl Sketch for SimpleSketch {
     surface_pixel_dimensions: (usize, usize),
     t: f32,
   ) -> Self {
-    wgpu.queue.write_buffer(
+    wgpu.write_buffer(
       &self.dimensions_buffer,
-      0,
-      bytemuck::cast_slice(&[
+      [
         surface_pixel_dimensions.0 as f32,
         surface_pixel_dimensions.1 as f32,
-      ]),
+      ],
     );
-    wgpu
-      .queue
-      .write_buffer(&self.time_buffer, 0, bytemuck::cast_slice(&[t]));
-
+    wgpu.write_buffer(&self.time_buffer, t);
     {
       let mut render_pass =
         encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
