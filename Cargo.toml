@@ -1,0 +1,10 @@
+[package]
+name = "hollow-rs"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+winit = "0.29"
+wgpu = "0.19"
+pollster = "0.3"
+bytemuck = { version = "1.14", features = [ "derive" ] }
