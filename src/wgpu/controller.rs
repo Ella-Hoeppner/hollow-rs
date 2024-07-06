@@ -6,6 +6,7 @@ use winit::window::Window;
 use super::{
   bind::{BindGroupLayout, BindGroupLayoutDescriptorBuilder},
   buffer::{Buffer, BufferBuilder},
+  pipeline::RenderPipelineBuilder,
 };
 
 pub struct WGPUController<'window> {
@@ -103,5 +104,8 @@ impl<'window> WGPUController<'window> {
         .device
         .create_bind_group_layout(descriptor_builder.build()),
     )
+  }
+  pub fn build_render_pipeline(&self) -> RenderPipelineBuilder {
+    RenderPipelineBuilder::new(self)
   }
 }

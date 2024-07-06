@@ -5,10 +5,7 @@ use hollow_rs::{
     controller::WGPUController,
   },
 };
-use wgpu::{
-  BindGroup, CommandEncoder, RenderPipeline, RenderPipelineDescriptor,
-  TextureView,
-};
+use wgpu::{BindGroup, CommandEncoder, RenderPipeline, TextureView};
 
 struct SimpleSketch {
   primary_bind_group: BindGroup,
@@ -42,56 +39,12 @@ impl Sketch for SimpleSketch {
       .with_buffer_entry(&dimensions_buffer)
       .with_buffer_entry(&time_buffer)
       .build(wgpu);
-    let corner_vertex_buffer_layout = wgpu::VertexBufferLayout {
-      array_stride: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
-      step_mode: wgpu::VertexStepMode::Vertex,
-      attributes: &wgpu::vertex_attr_array![0 => Float32x2],
-    };
-    let background_pipeline_layout =
-      wgpu
-        .device
-        .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-          label: Some("Background Render Pipeline Layout"),
-          bind_group_layouts: &[&primary_bind_group_layout],
-          push_constant_ranges: &[],
-        });
-    let background_pipeline =
-      wgpu
-        .device
-        .create_render_pipeline(&RenderPipelineDescriptor {
-          label: Some("Background Render Pipeline"),
-          layout: Some(&background_pipeline_layout),
-          vertex: wgpu::VertexState {
-            module: &shader,
-            entry_point: "vertex",
-            buffers: &[corner_vertex_buffer_layout.clone()],
-          },
-          fragment: Some(wgpu::FragmentState {
-            module: &shader,
-            entry_point: "fragment",
-            targets: &[Some(wgpu::ColorTargetState {
-              format: wgpu.config.format,
-              blend: Some(wgpu::BlendState::REPLACE),
-              write_mask: wgpu::ColorWrites::ALL,
-            })],
-          }),
-          primitive: wgpu::PrimitiveState {
-            topology: wgpu::PrimitiveTopology::TriangleList,
-            strip_index_format: None,
-            front_face: wgpu::FrontFace::Ccw,
-            cull_mode: Some(wgpu::Face::Back),
-            polygon_mode: wgpu::PolygonMode::Fill,
-            unclipped_depth: false,
-            conservative: false,
-          },
-          depth_stencil: None,
-          multisample: wgpu::MultisampleState {
-            count: 1,
-            mask: !0,
-            alpha_to_coverage_enabled: false,
-          },
-          multiview: None,
-        });
+    let corner_vertex_buffer_layout = corner_vertex_buffer
+      .vertex_layout(&wgpu::vertex_attr_array![0 => Float32x2]);
+    let background_pipeline = wgpu
+      .build_render_pipeline()
+      .add_bind_group_layout(&primary_bind_group_layout)
+      .build_with_shader(&shader, &[corner_vertex_buffer_layout.clone()]);
     Self {
       time_buffer,
       dimensions_buffer,
@@ -106,15 +59,12 @@ impl Sketch for SimpleSketch {
     wgpu: &WGPUController,
     surface_view: TextureView,
     encoder: &mut CommandEncoder,
-    surface_pixel_dimensions: (usize, usize),
+    dimensions: (usize, usize),
     t: f32,
   ) -> Self {
     wgpu.write_buffer(
       &self.dimensions_buffer,
-      [
-        surface_pixel_dimensions.0 as f32,
-        surface_pixel_dimensions.1 as f32,
-      ],
+      [dimensions.0 as f32, dimensions.1 as f32],
     );
     wgpu.write_buffer(&self.time_buffer, t);
     {

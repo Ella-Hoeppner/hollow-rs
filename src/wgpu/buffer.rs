@@ -1,13 +1,39 @@
 use std::{marker::PhantomData, ops::Deref};
 
 use bytemuck::NoUninit;
-use wgpu::{util::DeviceExt, Buffer as WGPUBuffer, BufferUsages};
+use wgpu::{
+  util::DeviceExt, Buffer as WGPUBuffer, BufferUsages, VertexAttribute,
+  VertexBufferLayout,
+};
 
 use super::controller::WGPUController;
 
 pub struct Buffer<T: NoUninit> {
   _phantom: PhantomData<T>,
   pub buffer: WGPUBuffer,
+}
+
+impl<T: NoUninit> Buffer<T> {
+  pub fn vertex_layout<'a>(
+    &self,
+    attributes: &'a [VertexAttribute],
+  ) -> VertexBufferLayout<'a> {
+    VertexBufferLayout {
+      array_stride: std::mem::size_of::<T>() as wgpu::BufferAddress,
+      step_mode: wgpu::VertexStepMode::Vertex,
+      attributes,
+    }
+  }
+  pub fn instance_stepped_vertex_layout<'a>(
+    &self,
+    attributes: &'a [VertexAttribute],
+  ) -> VertexBufferLayout<'a> {
+    VertexBufferLayout {
+      array_stride: std::mem::size_of::<T>() as wgpu::BufferAddress,
+      step_mode: wgpu::VertexStepMode::Instance,
+      attributes,
+    }
+  }
 }
 
 impl<T: NoUninit> Deref for Buffer<T> {
