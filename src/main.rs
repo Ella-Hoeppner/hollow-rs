@@ -2,7 +2,7 @@ use hollow_rs::{
   sketch::Sketch,
   wgpu::{
     bind::BindGroupLayoutDescriptorBuilder, buffer::Buffer,
-    controller::WGPUController,
+    controller::WGPUController, render_pass::RenderPassBuilder,
   },
 };
 use wgpu::{BindGroup, CommandEncoder, RenderPipeline, TextureView};
@@ -68,21 +68,9 @@ impl Sketch for SimpleSketch {
     );
     wgpu.write_buffer(&self.time_buffer, t);
     {
-      let mut render_pass =
-        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-          label: Some("Main Render Pass"),
-          color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-            view: &surface_view,
-            resolve_target: None,
-            ops: wgpu::Operations {
-              load: wgpu::LoadOp::Load,
-              store: wgpu::StoreOp::Store,
-            },
-          })],
-          depth_stencil_attachment: None,
-          occlusion_query_set: None,
-          timestamp_writes: None,
-        });
+      let mut render_pass = RenderPassBuilder::new(encoder)
+        .add_simple_color_attachment(&surface_view)
+        .build();
       render_pass.set_bind_group(0, &self.primary_bind_group, &[]);
       render_pass.set_index_buffer(
         self.corner_index_buffer.slice(..),
