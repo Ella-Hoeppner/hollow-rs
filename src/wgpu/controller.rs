@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
 use bytemuck::NoUninit;
+use wgpu::{ShaderModule, ShaderModuleDescriptor};
 use winit::window::Window;
 
 use super::{
-  bind::{BindGroupLayout, BindGroupLayoutDescriptorBuilder},
+  bind::BindGroupLayoutBuilder,
   buffer::{Buffer, BufferBuilder},
   pipeline::RenderPipelineBuilder,
 };
@@ -69,6 +70,9 @@ impl<'window> WGPUController<'window> {
       config,
     }
   }
+  pub fn shader(&self, source: ShaderModuleDescriptor<'_>) -> ShaderModule {
+    self.device.create_shader_module(source)
+  }
   pub fn build_buffer<'a, 'w, T: NoUninit>(
     &'w self,
     contents: &'a [T],
@@ -95,17 +99,10 @@ impl<'window> WGPUController<'window> {
       .queue
       .write_buffer(buffer, 0, bytemuck::cast_slice(data))
   }
-  pub fn create_bind_group_layout<'a>(
-    &self,
-    descriptor_builder: &'a mut BindGroupLayoutDescriptorBuilder<'a>,
-  ) -> BindGroupLayout {
-    BindGroupLayout::new(
-      self
-        .device
-        .create_bind_group_layout(descriptor_builder.build()),
-    )
-  }
   pub fn build_render_pipeline(&self) -> RenderPipelineBuilder {
     RenderPipelineBuilder::new(self)
+  }
+  pub fn build_bind_group_layout(&self) -> BindGroupLayoutBuilder {
+    BindGroupLayoutBuilder::new(self)
   }
 }

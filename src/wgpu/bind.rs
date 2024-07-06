@@ -61,15 +61,17 @@ impl BindGroupLayoutEntryBuilder {
   }
 }
 
-pub struct BindGroupLayoutDescriptorBuilder<'s> {
+pub struct BindGroupLayoutBuilder<'s, 'w, 'window> {
+  wgpu: &'w WGPUController<'window>,
   entries: Vec<BindGroupLayoutEntry>,
   label: Option<&'s str>,
   descriptor: Option<BindGroupLayoutDescriptor<'s>>,
 }
 
-impl<'s> BindGroupLayoutDescriptorBuilder<'s> {
-  pub fn new() -> Self {
+impl<'s, 'w, 'window> BindGroupLayoutBuilder<'s, 'w, 'window> {
+  pub fn new(wgpu: &'w WGPUController<'window>) -> Self {
     Self {
+      wgpu,
       entries: vec![],
       label: None,
       descriptor: None,
@@ -86,26 +88,30 @@ impl<'s> BindGroupLayoutDescriptorBuilder<'s> {
   pub fn with_default_entry(self) -> Self {
     self.with_entry(BindGroupLayoutEntryBuilder::new())
   }
-  pub fn build<'a: 'b + 's, 'b>(
-    &'a mut self,
-  ) -> &'b BindGroupLayoutDescriptor<'s> {
-    self.descriptor = Some(BindGroupLayoutDescriptor {
-      entries: &self.entries,
-      label: self.label,
-    });
-    self.descriptor.as_ref().unwrap()
+  pub fn build(self) -> BindGroupLayout {
+    BindGroupLayout::new(self.wgpu.device.create_bind_group_layout(
+      &BindGroupLayoutDescriptor {
+        entries: &self.entries,
+        label: self.label,
+      },
+    ))
   }
 }
 
-pub struct BindGroupBuilder<'l, 's, 'a> {
+pub struct BindGroupBuilder<'l, 's, 'a, 'w, 'window> {
+  wgpu: &'w WGPUController<'window>,
   layout: &'l BindGroupLayout,
   label: Option<&'s str>,
   entries: Vec<BindGroupEntry<'a>>,
 }
 
-impl<'l, 's, 'a> BindGroupBuilder<'l, 's, 'a> {
-  pub fn new(layout: &'l BindGroupLayout) -> Self {
+impl<'l, 's, 'a, 'w, 'window> BindGroupBuilder<'l, 's, 'a, 'w, 'window> {
+  pub fn new(
+    wgpu: &'w WGPUController<'window>,
+    layout: &'l BindGroupLayout,
+  ) -> Self {
     Self {
+      wgpu,
       layout,
       label: None,
       entries: vec![],
@@ -125,8 +131,8 @@ impl<'l, 's, 'a> BindGroupBuilder<'l, 's, 'a> {
     });
     self
   }
-  pub fn build(self, wgpu: &WGPUController) -> BindGroup {
-    wgpu.device.create_bind_group(&BindGroupDescriptor {
+  pub fn build(self) -> BindGroup {
+    self.wgpu.device.create_bind_group(&BindGroupDescriptor {
       layout: self.layout,
       entries: &self.entries,
       label: None,
@@ -141,8 +147,11 @@ impl BindGroupLayout {
   pub fn new(layout: WGPUBindGroupLayout) -> Self {
     Self { layout }
   }
-  pub fn build_group<'l>(&'l self) -> BindGroupBuilder<'l, '_, '_> {
-    BindGroupBuilder::new(self)
+  pub fn build_group<'l, 'w, 'window>(
+    &'l self,
+    wgpu: &'w WGPUController<'window>,
+  ) -> BindGroupBuilder<'l, '_, '_, 'w, 'window> {
+    BindGroupBuilder::new(wgpu, self)
   }
 }
 impl Deref for BindGroupLayout {

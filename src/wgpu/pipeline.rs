@@ -71,11 +71,18 @@ impl<'w, 'window, 's, 'b, 'shader>
     self.multiview = Some(multiview);
     self
   }
-  pub fn build_with_shader(
+  pub fn build_with_shader_entry_points<'v, 'f>(
     self,
     shader: &ShaderModule,
     vertex_buffers: &[VertexBufferLayout<'_>],
+    vertex: &'v str,
+    fragment: Option<&'f str>,
   ) -> RenderPipeline {
+    let fragment_targets = &[Some(ColorTargetState {
+      format: self.wgpu.config.format,
+      blend: Some(wgpu::BlendState::REPLACE),
+      write_mask: wgpu::ColorWrites::ALL,
+    })];
     self
       .wgpu
       .device
@@ -90,17 +97,13 @@ impl<'w, 'window, 's, 'b, 'shader>
         )),
         vertex: wgpu::VertexState {
           module: &shader,
-          entry_point: "vertex",
+          entry_point: vertex,
           buffers: vertex_buffers,
         },
-        fragment: Some(FragmentState {
+        fragment: fragment.map(|fragment| FragmentState {
           module: &shader,
-          entry_point: "fragment",
-          targets: &[Some(ColorTargetState {
-            format: self.wgpu.config.format,
-            blend: Some(wgpu::BlendState::REPLACE),
-            write_mask: wgpu::ColorWrites::ALL,
-          })],
+          entry_point: fragment,
+          targets: fragment_targets,
         }),
         primitive: self.primitive.unwrap_or(wgpu::PrimitiveState {
           topology: wgpu::PrimitiveTopology::TriangleList,
@@ -119,6 +122,18 @@ impl<'w, 'window, 's, 'b, 'shader>
         }),
         multiview: self.multiview,
       })
+  }
+  pub fn build_with_shader(
+    self,
+    shader: &ShaderModule,
+    vertex_buffers: &[VertexBufferLayout<'_>],
+  ) -> RenderPipeline {
+    self.build_with_shader_entry_points(
+      shader,
+      vertex_buffers,
+      "vertex",
+      Some("fragment"),
+    )
   }
   pub fn build(self) -> RenderPipeline {
     self
