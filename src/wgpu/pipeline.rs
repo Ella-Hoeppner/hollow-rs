@@ -8,10 +8,11 @@ use wgpu::{
 
 use super::controller::WGPUController;
 
-pub struct RenderPipelineBuilder<'w, 'window, 's, 'b, 'shader> {
+pub struct RenderPipelineBuilder<'w, 'window, 's, 'v, 'b, 'shader> {
   wgpu: &'w WGPUController<'window>,
   label: Option<&'s str>,
   bind_group_layouts: Vec<&'b BindGroupLayout>,
+  vertex_buffer_layouts: Vec<VertexBufferLayout<'v>>,
   vertex: Option<VertexState<'shader>>,
   fragment: Option<FragmentState<'shader>>,
   primitive: Option<PrimitiveState>,
@@ -20,14 +21,15 @@ pub struct RenderPipelineBuilder<'w, 'window, 's, 'b, 'shader> {
   multiview: Option<NonZero<u32>>,
 }
 
-impl<'w, 'window, 's, 'b, 'shader>
-  RenderPipelineBuilder<'w, 'window, 's, 'b, 'shader>
+impl<'w, 'window, 's, 'v, 'b, 'shader>
+  RenderPipelineBuilder<'w, 'window, 's, 'v, 'b, 'shader>
 {
   pub fn new(wgpu: &'w WGPUController<'window>) -> Self {
     Self {
       wgpu,
       label: None,
       bind_group_layouts: vec![],
+      vertex_buffer_layouts: vec![],
       vertex: None,
       fragment: None,
       primitive: None,
@@ -71,12 +73,18 @@ impl<'w, 'window, 's, 'b, 'shader>
     self.multiview = Some(multiview);
     self
   }
-  pub fn build_with_shader_entry_points<'v, 'f>(
+  pub fn add_vertex_buffer_layout<V: Into<VertexBufferLayout<'v>>>(
+    mut self,
+    layout: V,
+  ) -> Self {
+    self.vertex_buffer_layouts.push(layout.into());
+    self
+  }
+  pub fn build_with_shader_entry_points<'vs, 'fs>(
     self,
     shader: &ShaderModule,
-    vertex_buffers: &[VertexBufferLayout<'_>],
-    vertex: &'v str,
-    fragment: Option<&'f str>,
+    vertex: &'vs str,
+    fragment: Option<&'fs str>,
   ) -> RenderPipeline {
     let fragment_targets = &[Some(ColorTargetState {
       format: self.wgpu.config.format,
@@ -98,7 +106,7 @@ impl<'w, 'window, 's, 'b, 'shader>
         vertex: wgpu::VertexState {
           module: &shader,
           entry_point: vertex,
-          buffers: vertex_buffers,
+          buffers: &self.vertex_buffer_layouts,
         },
         fragment: fragment.map(|fragment| FragmentState {
           module: &shader,
@@ -123,17 +131,8 @@ impl<'w, 'window, 's, 'b, 'shader>
         multiview: self.multiview,
       })
   }
-  pub fn build_with_shader(
-    self,
-    shader: &ShaderModule,
-    vertex_buffers: &[VertexBufferLayout<'_>],
-  ) -> RenderPipeline {
-    self.build_with_shader_entry_points(
-      shader,
-      vertex_buffers,
-      "vertex",
-      Some("fragment"),
-    )
+  pub fn build_with_shader(self, shader: &ShaderModule) -> RenderPipeline {
+    self.build_with_shader_entry_points(shader, "vertex", Some("fragment"))
   }
   pub fn build(self) -> RenderPipeline {
     self

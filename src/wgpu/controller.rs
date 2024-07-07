@@ -6,7 +6,7 @@ use winit::window::Window;
 
 use super::{
   bind::{BindGroupLayoutBuilder, BindGroupWithLayoutBuilder},
-  buffer::{Buffer, BufferBuilder},
+  buffer::{Buffer, BufferBuilder, IntoBufferData},
   pipeline::RenderPipelineBuilder,
 };
 
@@ -85,12 +85,27 @@ impl<'window> WGPUController<'window> {
   pub fn array_buffer<T: NoUninit>(&self, contents: &[T]) -> Buffer<T> {
     BufferBuilder::new(self, contents).build()
   }
-  pub fn write_buffer<T: NoUninit>(&self, buffer: &Buffer<T>, data: T) {
-    self
-      .queue
-      .write_buffer(buffer, 0, bytemuck::cast_slice(&[data]))
+  pub fn write_buffer<T: NoUninit>(
+    &self,
+    buffer: &Buffer<T>,
+    data: impl IntoBufferData<T>,
+  ) {
+    self.queue.write_buffer(
+      buffer,
+      0,
+      bytemuck::cast_slice(&[data.into_buffer_data()]),
+    )
   }
   pub fn write_array_buffer<T: NoUninit>(
+    &self,
+    buffer: &Buffer<T>,
+    data: &[T],
+  ) {
+    self
+      .queue
+      .write_buffer(buffer, 0, bytemuck::cast_slice(data))
+  }
+  pub fn write_array_buffer_2<T: NoUninit>(
     &self,
     buffer: &Buffer<T>,
     data: &[T],

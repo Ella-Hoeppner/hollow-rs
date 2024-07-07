@@ -2,8 +2,7 @@ use std::{num::NonZero, ops::Deref};
 
 use bytemuck::NoUninit;
 use wgpu::{
-  BindGroup, BindGroupDescriptor, BindGroupEntry,
-  BindGroupLayout as WGPUBindGroupLayout, BindGroupLayoutDescriptor,
+  BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor,
   BindGroupLayoutEntry, BindingType, ShaderStages,
 };
 
@@ -147,10 +146,10 @@ impl<'l, 's, 'a, 'w, 'window> BindGroupBuilder<'l, 's, 'a, 'w, 'window> {
 }
 
 pub struct BindGroupLayout {
-  pub layout: WGPUBindGroupLayout,
+  pub layout: wgpu::BindGroupLayout,
 }
 impl BindGroupLayout {
-  pub fn new(layout: WGPUBindGroupLayout) -> Self {
+  pub fn new(layout: wgpu::BindGroupLayout) -> Self {
     Self { layout }
   }
   pub fn build_group<'l, 'w, 'window>(
@@ -161,7 +160,7 @@ impl BindGroupLayout {
   }
 }
 impl Deref for BindGroupLayout {
-  type Target = WGPUBindGroupLayout;
+  type Target = wgpu::BindGroupLayout;
 
   fn deref(&self) -> &Self::Target {
     &self.layout

@@ -5,13 +5,14 @@ use crate::{app::run_sketch, wgpu::controller::WGPUController};
 pub trait Sketch: Sized {
   fn init(wgpu: &WGPUController) -> Self;
   fn update(
-    self,
+    &mut self,
     wgpu: &WGPUController,
     surface_view: TextureView,
     encoder: &mut CommandEncoder,
-    surface_pixel_dimensions: (usize, usize),
+    surface_pixel_dimensions: [usize; 2],
     t: f32,
-  ) -> Self;
+    delta_t: f32,
+  );
   fn run() {
     pollster::block_on(run_sketch::<Self>());
   }

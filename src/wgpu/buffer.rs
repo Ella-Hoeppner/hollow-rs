@@ -2,15 +2,14 @@ use std::{marker::PhantomData, ops::Deref};
 
 use bytemuck::NoUninit;
 use wgpu::{
-  util::DeviceExt, Buffer as WGPUBuffer, BufferUsages, VertexAttribute,
-  VertexBufferLayout,
+  util::DeviceExt, BufferUsages, VertexAttribute, VertexBufferLayout,
 };
 
 use super::controller::WGPUController;
 
 pub struct Buffer<T: NoUninit> {
   _phantom: PhantomData<T>,
-  pub buffer: WGPUBuffer,
+  pub buffer: wgpu::Buffer,
 }
 
 impl<T: NoUninit> Buffer<T> {
@@ -36,10 +35,65 @@ impl<T: NoUninit> Buffer<T> {
   }
 }
 
+impl<'a> Into<VertexBufferLayout<'a>> for &'a Buffer<f32> {
+  fn into(self) -> VertexBufferLayout<'a> {
+    self.vertex_layout(&wgpu::vertex_attr_array![0 => Float32])
+  }
+}
+impl<'a> Into<VertexBufferLayout<'a>> for &'a Buffer<[f32; 2]> {
+  fn into(self) -> VertexBufferLayout<'a> {
+    self.vertex_layout(&wgpu::vertex_attr_array![0 => Float32x2])
+  }
+}
+impl<'a> Into<VertexBufferLayout<'a>> for &'a Buffer<[f32; 3]> {
+  fn into(self) -> VertexBufferLayout<'a> {
+    self.vertex_layout(&wgpu::vertex_attr_array![0 => Float32x3])
+  }
+}
+impl<'a> Into<VertexBufferLayout<'a>> for &'a Buffer<[f32; 4]> {
+  fn into(self) -> VertexBufferLayout<'a> {
+    self.vertex_layout(&wgpu::vertex_attr_array![0 => Float32x4])
+  }
+}
+
 impl<T: NoUninit> Deref for Buffer<T> {
-  type Target = WGPUBuffer;
+  type Target = wgpu::Buffer;
   fn deref(&self) -> &Self::Target {
     &self.buffer
+  }
+}
+
+pub trait IntoBufferData<T: NoUninit> {
+  fn into_buffer_data(self) -> T;
+}
+impl<T: NoUninit> IntoBufferData<T> for T {
+  fn into_buffer_data(self) -> T {
+    self
+  }
+}
+impl IntoBufferData<f32> for usize {
+  fn into_buffer_data(self) -> f32 {
+    self as f32
+  }
+}
+impl IntoBufferData<[f32; 2]> for [usize; 2] {
+  fn into_buffer_data(self) -> [f32; 2] {
+    [self[0] as f32, self[1] as f32]
+  }
+}
+impl IntoBufferData<[f32; 3]> for [usize; 3] {
+  fn into_buffer_data(self) -> [f32; 3] {
+    [self[0] as f32, self[1] as f32, self[2] as f32]
+  }
+}
+impl IntoBufferData<[f32; 4]> for [usize; 4] {
+  fn into_buffer_data(self) -> [f32; 4] {
+    [
+      self[0] as f32,
+      self[1] as f32,
+      self[2] as f32,
+      self[3] as f32,
+    ]
   }
 }
 

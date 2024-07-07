@@ -1,5 +1,4 @@
 use std::{sync::Arc, time::Instant};
-use take_mut::take;
 
 use crate::{sketch::Sketch, wgpu::controller::WGPUController};
 use winit::{
@@ -13,7 +12,7 @@ struct App<'w> {
   start_instant: Instant,
   last_frame_timestamp: f32,
   wgpu: WGPUController<'w>,
-  surface_pixel_dimensions: (usize, usize),
+  surface_pixel_dimensions: [usize; 2],
 }
 
 impl<'w> App<'w> {
@@ -25,11 +24,14 @@ impl<'w> App<'w> {
       start_instant: Instant::now(),
       last_frame_timestamp: 0.,
       wgpu,
-      surface_pixel_dimensions: (1, 1),
+      surface_pixel_dimensions: [0, 0],
     }
   }
   fn time(&self) -> f32 {
     self.start_instant.elapsed().as_secs_f32()
+  }
+  fn delta_time(&self) -> f32 {
+    self.time() - self.last_frame_timestamp
   }
   fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
     let width = new_size.width;
@@ -42,7 +44,7 @@ impl<'w> App<'w> {
         .surface
         .configure(&self.wgpu.device, &self.wgpu.config);
     }
-    self.surface_pixel_dimensions = (width as usize, height as usize);
+    self.surface_pixel_dimensions = [width as usize, height as usize];
   }
   fn update(&mut self) {
     let t = self.time();
@@ -56,57 +58,49 @@ pub async fn run_sketch<S: Sketch>() {
     .with_title("cast")
     .build(&event_loop)
     .unwrap();
-  let mut state = App::new(window).await;
-  let mut sketch = S::init(&state.wgpu);
+  let mut app = App::new(window).await;
+  let mut sketch = S::init(&app.wgpu);
   event_loop
     .run(move |event, event_loop_window_target| match event {
       Event::WindowEvent {
         ref event,
         window_id,
-      } if window_id == state.window.id() => {
-        match event {
-          WindowEvent::CloseRequested => event_loop_window_target.exit(),
-          WindowEvent::Resized(physical_size) => {
-            state.resize(*physical_size);
-          }
-          WindowEvent::RedrawRequested => {
-            state.update();
-            //
-            match state.wgpu.surface.get_current_texture() {
-              Err(wgpu::SurfaceError::Lost) => {
-                state.resize(state.window.inner_size())
-              }
-              Err(e) => panic!("{:?}", e),
-              Ok(surface_texture) => {
-                let surface_view_descriptor =
-                  wgpu::TextureViewDescriptor::default();
-                let surface_view = surface_texture
-                  .texture
-                  .create_view(&surface_view_descriptor);
-                let mut encoder = state.wgpu.device.create_command_encoder(
-                  &wgpu::CommandEncoderDescriptor {
-                    label: Some("Render Encoder"),
-                  },
-                );
-                take(&mut sketch, |sketch| {
-                  sketch.update(
-                    &state.wgpu,
-                    surface_view,
-                    &mut encoder,
-                    state.surface_pixel_dimensions,
-                    state.time(),
-                  )
-                });
-                state.wgpu.queue.submit(std::iter::once(encoder.finish()));
-                surface_texture.present();
-              }
+      } if window_id == app.window.id() => match event {
+        WindowEvent::CloseRequested => event_loop_window_target.exit(),
+        WindowEvent::Resized(physical_size) => {
+          app.resize(*physical_size);
+        }
+        WindowEvent::RedrawRequested => {
+          app.update();
+          match app.wgpu.surface.get_current_texture() {
+            Err(wgpu::SurfaceError::Lost) => {
+              app.resize(app.window.inner_size())
+            }
+            Err(err) => panic!("{err:?}"),
+            Ok(surface_texture) => {
+              let surface_view = surface_texture
+                .texture
+                .create_view(&wgpu::TextureViewDescriptor::default());
+              let mut encoder = app.wgpu.device.create_command_encoder(
+                &wgpu::CommandEncoderDescriptor { label: None },
+              );
+              sketch.update(
+                &app.wgpu,
+                surface_view,
+                &mut encoder,
+                app.surface_pixel_dimensions,
+                app.time(),
+                app.delta_time(),
+              );
+              app.wgpu.queue.submit(std::iter::once(encoder.finish()));
+              surface_texture.present();
             }
           }
-          _ => {}
         }
-      }
+        _ => {}
+      },
       Event::AboutToWait => {
-        state.window.request_redraw();
+        app.window.request_redraw();
       }
       _ => {}
     })

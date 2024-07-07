@@ -23,6 +23,7 @@ impl Sketch for SimpleSketch {
     let corner_vertex_buffer =
       wgpu.array_buffer(&[[-1., -1.], [1., -1.], [1., 1.], [-1., 1.]]);
     let corner_index_buffer = wgpu.array_buffer(&[2, 0, 1, 0, 2, 3]);
+
     let primary_bind_group = wgpu
       .build_bind_group_with_layout()
       .with_uniform_buffer_entry(&dimensions_buffer)
@@ -31,11 +32,9 @@ impl Sketch for SimpleSketch {
     let background_pipeline = wgpu
       .build_render_pipeline()
       .add_bind_group_layout(&primary_bind_group.layout)
-      .build_with_shader(
-        &wgpu.shader(wgpu::include_wgsl!("shader.wgsl")),
-        &[corner_vertex_buffer
-          .vertex_layout(&wgpu::vertex_attr_array![0 => Float32x2])],
-      );
+      .add_vertex_buffer_layout(&corner_vertex_buffer)
+      .build_with_shader(&wgpu.shader(wgpu::include_wgsl!("shader.wgsl")));
+
     Self {
       time_buffer,
       dimensions_buffer,
@@ -45,33 +44,30 @@ impl Sketch for SimpleSketch {
       background_pipeline,
     }
   }
+
   fn update(
-    self,
+    &mut self,
     wgpu: &WGPUController,
     surface_view: TextureView,
     encoder: &mut CommandEncoder,
-    dimensions: (usize, usize),
+    dimensions: [usize; 2],
     t: f32,
-  ) -> Self {
-    wgpu.write_buffer(
-      &self.dimensions_buffer,
-      [dimensions.0 as f32, dimensions.1 as f32],
-    );
+    _delta_t: f32,
+  ) {
+    wgpu.write_buffer(&self.dimensions_buffer, dimensions);
     wgpu.write_buffer(&self.time_buffer, t);
-    {
-      let mut render_pass = RenderPassBuilder::new(encoder)
-        .add_simple_color_attachment(&surface_view)
-        .build();
-      render_pass.set_bind_group(0, &self.primary_bind_group, &[]);
-      render_pass.set_index_buffer(
-        self.corner_index_buffer.slice(..),
-        wgpu::IndexFormat::Uint16,
-      );
-      render_pass.set_vertex_buffer(0, self.corner_vertex_buffer.slice(..));
-      render_pass.set_pipeline(&self.background_pipeline);
-      render_pass.draw_indexed(0..6, 0, 0..1);
-    }
-    self
+
+    let mut render_pass = RenderPassBuilder::new(encoder)
+      .add_simple_color_attachment(&surface_view)
+      .build();
+    render_pass.set_bind_group(0, &self.primary_bind_group, &[]);
+    render_pass.set_index_buffer(
+      self.corner_index_buffer.slice(..),
+      wgpu::IndexFormat::Uint16,
+    );
+    render_pass.set_vertex_buffer(0, self.corner_vertex_buffer.slice(..));
+    render_pass.set_pipeline(&self.background_pipeline);
+    render_pass.draw_indexed(0..6, 0, 0..1);
   }
 }
 
