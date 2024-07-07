@@ -1,13 +1,14 @@
 use hollow_rs::{
   sketch::Sketch,
   wgpu::{
-    buffer::Buffer, controller::WGPUController, render_pass::RenderPassBuilder,
+    bind::BindGroupWithLayout, buffer::Buffer, controller::WGPUController,
+    render_pass::RenderPassBuilder,
   },
 };
-use wgpu::{BindGroup, CommandEncoder, RenderPipeline, TextureView};
+use wgpu::{CommandEncoder, RenderPipeline, TextureView};
 
 struct SimpleSketch {
-  primary_bind_group: BindGroup,
+  primary_bind_group: BindGroupWithLayout,
   corner_vertex_buffer: Buffer<[f32; 2]>,
   corner_index_buffer: Buffer<u16>,
   time_buffer: Buffer<f32>,
@@ -21,30 +22,20 @@ impl Sketch for SimpleSketch {
     let dimensions_buffer = wgpu.buffer([0., 0.]);
     let corner_vertex_buffer =
       wgpu.array_buffer(&[[-1., -1.], [1., -1.], [1., 1.], [-1., 1.]]);
-    let corner_index_buffer = wgpu
-      .build_buffer(&[2, 0, 1, 0, 2, 3])
-      .with_usage(wgpu::BufferUsages::INDEX)
-      .build();
-
-    let primary_bind_group_layout = wgpu
-      .build_bind_group_layout()
-      .with_default_entry()
-      .with_default_entry()
-      .build();
-    let primary_bind_group = primary_bind_group_layout
-      .build_group(wgpu)
-      .with_buffer_entry(&dimensions_buffer)
-      .with_buffer_entry(&time_buffer)
+    let corner_index_buffer = wgpu.array_buffer(&[2, 0, 1, 0, 2, 3]);
+    let primary_bind_group = wgpu
+      .build_bind_group_with_layout()
+      .with_uniform_buffer_entry(&dimensions_buffer)
+      .with_uniform_buffer_entry(&time_buffer)
       .build();
     let background_pipeline = wgpu
       .build_render_pipeline()
-      .add_bind_group_layout(&primary_bind_group_layout)
+      .add_bind_group_layout(&primary_bind_group.layout)
       .build_with_shader(
         &wgpu.shader(wgpu::include_wgsl!("shader.wgsl")),
         &[corner_vertex_buffer
           .vertex_layout(&wgpu::vertex_attr_array![0 => Float32x2])],
       );
-
     Self {
       time_buffer,
       dimensions_buffer,

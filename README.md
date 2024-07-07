@@ -1,3 +1,4 @@
 ## to-do
 * purefrag shader abstraction
-* support writing to textures
+* writing to textures
+* compute shader passes

@@ -5,7 +5,7 @@ use wgpu::{ShaderModule, ShaderModuleDescriptor};
 use winit::window::Window;
 
 use super::{
-  bind::BindGroupLayoutBuilder,
+  bind::{BindGroupLayoutBuilder, BindGroupWithLayoutBuilder},
   buffer::{Buffer, BufferBuilder},
   pipeline::RenderPipelineBuilder,
 };
@@ -104,5 +104,8 @@ impl<'window> WGPUController<'window> {
   }
   pub fn build_bind_group_layout(&self) -> BindGroupLayoutBuilder {
     BindGroupLayoutBuilder::new(self)
+  }
+  pub fn build_bind_group_with_layout(&self) -> BindGroupWithLayoutBuilder {
+    BindGroupWithLayoutBuilder::new(self)
   }
 }
