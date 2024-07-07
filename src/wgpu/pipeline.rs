@@ -1,9 +1,9 @@
 use std::num::NonZero;
 
 use wgpu::{
-  BindGroupLayout, ColorTargetState, DepthStencilState, FragmentState,
-  MultisampleState, PrimitiveState, RenderPipeline, RenderPipelineDescriptor,
-  ShaderModule, VertexBufferLayout, VertexState,
+  BindGroupLayout, ColorTargetState, ComputePipeline, DepthStencilState,
+  FragmentState, MultisampleState, PrimitiveState, RenderPipeline,
+  RenderPipelineDescriptor, ShaderModule, VertexBufferLayout, VertexState,
 };
 
 use super::controller::WGPUController;
@@ -83,8 +83,8 @@ impl<'w, 'window, 's, 'v, 'b, 'shader>
   pub fn build_with_shader_entry_points<'vs, 'fs>(
     self,
     shader: &ShaderModule,
-    vertex: &'vs str,
-    fragment: Option<&'fs str>,
+    vertex_entry_point: &'vs str,
+    fragment_entry_point: Option<&'fs str>,
   ) -> RenderPipeline {
     let fragment_targets = &[Some(ColorTargetState {
       format: self.wgpu.config.format,
@@ -105,10 +105,10 @@ impl<'w, 'window, 's, 'v, 'b, 'shader>
         )),
         vertex: wgpu::VertexState {
           module: &shader,
-          entry_point: vertex,
+          entry_point: vertex_entry_point,
           buffers: &self.vertex_buffer_layouts,
         },
-        fragment: fragment.map(|fragment| FragmentState {
+        fragment: fragment_entry_point.map(|fragment| FragmentState {
           module: &shader,
           entry_point: fragment,
           targets: fragment_targets,
@@ -169,5 +169,53 @@ impl<'w, 'window, 's, 'v, 'b, 'shader>
         }),
         multiview: self.multiview,
       })
+  }
+}
+
+pub struct ComputePipelineBuilder<'w, 'window, 's, 'b> {
+  wgpu: &'w WGPUController<'window>,
+  label: Option<&'s str>,
+  bind_group_layouts: Vec<&'b BindGroupLayout>,
+}
+
+impl<'w, 'window, 's, 'b> ComputePipelineBuilder<'w, 'window, 's, 'b> {
+  pub fn new(wgpu: &'w WGPUController<'window>) -> Self {
+    Self {
+      wgpu,
+      label: None,
+      bind_group_layouts: vec![],
+    }
+  }
+  pub fn with_label(mut self, label: &'s str) -> Self {
+    self.label = Some(label);
+    self
+  }
+  pub fn add_bind_group_layout(mut self, layout: &'b BindGroupLayout) -> Self {
+    self.bind_group_layouts.push(layout);
+    self
+  }
+  pub fn build_with_shader_entry_point<'cs>(
+    self,
+    shader: &ShaderModule,
+    entry_point: &'cs str,
+  ) -> ComputePipeline {
+    self
+      .wgpu
+      .device
+      .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: self.label,
+        layout: Some(&self.wgpu.device.create_pipeline_layout(
+          &wgpu::PipelineLayoutDescriptor {
+            label: None,
+            bind_group_layouts: &self.bind_group_layouts,
+            push_constant_ranges: &[], // todo! handle these
+          },
+        )),
+        module: shader,
+        entry_point,
+      })
+  }
+  pub fn build_with_shader(self, shader: &ShaderModule) -> ComputePipeline {
+    self.build_with_shader_entry_point(shader, "compute")
   }
 }

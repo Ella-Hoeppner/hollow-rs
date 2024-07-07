@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use bytemuck::{NoUninit, Zeroable};
+use bytemuck::NoUninit;
 use wgpu::{ShaderModule, ShaderModuleDescriptor};
 use winit::window::Window;
 
@@ -8,7 +8,7 @@ use super::{
   bind::{BindGroupLayoutBuilder, BindGroupWithLayoutBuilder},
   buffer::{Buffer, BufferBuilder, IntoBufferData},
   encoder::CommandEncoder,
-  pipeline::RenderPipelineBuilder,
+  pipeline::{ComputePipelineBuilder, RenderPipelineBuilder},
 };
 
 pub struct WGPUController<'window> {
@@ -118,6 +118,9 @@ impl<'window> WGPUController<'window> {
   }
   pub fn build_render_pipeline(&self) -> RenderPipelineBuilder {
     RenderPipelineBuilder::new(self)
+  }
+  pub fn build_compute_pipeline(&self) -> ComputePipelineBuilder {
+    ComputePipelineBuilder::new(self)
   }
   pub fn build_bind_group_layout(&self) -> BindGroupLayoutBuilder {
     BindGroupLayoutBuilder::new(self)

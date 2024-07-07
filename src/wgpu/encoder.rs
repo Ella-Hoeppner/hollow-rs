@@ -2,7 +2,10 @@ use std::ops::{Deref, DerefMut};
 
 use wgpu::TextureView;
 
-use super::render_pass::{RenderPass, RenderPassBuilder};
+use super::{
+  compute_pass::ComputePass,
+  render_pass::{RenderPass, RenderPassBuilder},
+};
 
 pub struct CommandEncoder {
   pub encoder: wgpu::CommandEncoder,
@@ -23,6 +26,21 @@ impl CommandEncoder {
       .build_render_pass()
       .add_simple_color_attachment(view)
       .build()
+  }
+  pub fn compute_pass(&mut self) -> ComputePass {
+    ComputePass::new(self.begin_compute_pass(&wgpu::ComputePassDescriptor {
+      label: None,
+      timestamp_writes: None,
+    }))
+  }
+  pub fn compute_pass_with_timestamp_writes<'a>(
+    &mut self,
+    timestamp_writes: wgpu::ComputePassTimestampWrites<'a>,
+  ) -> ComputePass {
+    ComputePass::new(self.begin_compute_pass(&wgpu::ComputePassDescriptor {
+      label: None,
+      timestamp_writes: Some(timestamp_writes),
+    }))
   }
 }
 

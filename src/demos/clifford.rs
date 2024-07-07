@@ -14,7 +14,7 @@ const POINTS: usize = 256 * POINT_GROUP_MULTIPLE;
 pub struct CliffordSketch {
   uniform_bind_group: BindGroupWithLayout,
   render_points_bind_group: BindGroupWithLayout,
-  compute_points_bind_group: BindGroupWithLayout,
+  compute_bind_group: BindGroupWithLayout,
   corner_vertex_buffer: Buffer<[f32; 2]>,
   scale_buffer: Buffer<[f32; 2]>,
   render_pipeline: RenderPipeline,
@@ -48,7 +48,7 @@ impl Sketch for CliffordSketch {
       .build_bind_group_with_layout()
       .with_read_only_storage_buffer_entry(&point_buffer)
       .build();
-    let compute_points_bind_group = wgpu
+    let compute_bind_group = wgpu
       .build_bind_group_with_layout()
       .with_compute_writable_storage_buffer_entry(&point_buffer)
       .build();
@@ -63,26 +63,17 @@ impl Sketch for CliffordSketch {
       .build_with_shader(
         &wgpu.shader(wgpu::include_wgsl!("clifford_render.wgsl")),
       );
-    let compute_pipeline =
-      wgpu
-        .device
-        .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-          label: None,
-          layout: Some(&wgpu.device.create_pipeline_layout(
-            &wgpu::PipelineLayoutDescriptor {
-              label: None,
-              bind_group_layouts: &[&compute_points_bind_group.layout],
-              push_constant_ranges: &[],
-            },
-          )),
-          module: &wgpu.shader(wgpu::include_wgsl!("clifford_compute.wgsl")),
-          entry_point: "compute",
-        });
+    let compute_pipeline = wgpu
+      .build_compute_pipeline()
+      .add_bind_group_layout(&compute_bind_group.layout)
+      .build_with_shader(
+        &wgpu.shader(wgpu::include_wgsl!("clifford_compute.wgsl")),
+      );
     Self {
       scale_buffer,
       uniform_bind_group,
       render_points_bind_group,
-      compute_points_bind_group,
+      compute_bind_group,
       corner_vertex_buffer,
       render_pipeline,
       compute_pipeline,
@@ -106,16 +97,11 @@ impl Sketch for CliffordSketch {
         dim_min / dimensions[1] as f32,
       ],
     );
-    {
-      let mut compute_pass =
-        encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-          label: None,
-          timestamp_writes: None,
-        });
-      compute_pass.set_pipeline(&self.compute_pipeline);
-      compute_pass.set_bind_group(0, &self.compute_points_bind_group, &[]);
-      compute_pass.dispatch_workgroups(POINT_GROUP_MULTIPLE as u32, 1, 1);
-    }
+    encoder
+      .compute_pass()
+      .with_pipeline(&self.compute_pipeline)
+      .with_bind_groups([&self.compute_bind_group])
+      .dispatch(POINT_GROUP_MULTIPLE as u32, 1, 1);
     encoder
       .simple_render_pass(&surface_view)
       .with_bind_groups([
