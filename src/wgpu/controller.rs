@@ -7,6 +7,7 @@ use winit::window::Window;
 use super::{
   bind::{BindGroupLayoutBuilder, BindGroupWithLayoutBuilder},
   buffer::{Buffer, BufferBuilder, IntoBufferData},
+  encoder::CommandEncoder,
   pipeline::RenderPipelineBuilder,
 };
 
@@ -70,6 +71,15 @@ impl<'window> WGPUController<'window> {
       config,
     }
   }
+  pub fn create_command_encoder(&self) -> CommandEncoder {
+    CommandEncoder::new(
+      self
+        .device
+        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+          label: None,
+        }),
+    )
+  }
   pub fn shader(&self, source: ShaderModuleDescriptor<'_>) -> ShaderModule {
     self.device.create_shader_module(source)
   }
@@ -89,12 +99,13 @@ impl<'window> WGPUController<'window> {
     &self,
     buffer: &Buffer<T>,
     data: impl IntoBufferData<T>,
-  ) {
+  ) -> &Self {
     self.queue.write_buffer(
       buffer,
       0,
       bytemuck::cast_slice(&[data.into_buffer_data()]),
-    )
+    );
+    self
   }
   pub fn write_array_buffer<T: NoUninit>(
     &self,

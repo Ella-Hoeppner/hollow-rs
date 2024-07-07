@@ -1,6 +1,9 @@
-use wgpu::{CommandEncoder, TextureView};
+use wgpu::TextureView;
 
-use crate::{app::run_sketch, wgpu::controller::WGPUController};
+use crate::{
+  app::run_sketch,
+  wgpu::{controller::WGPUController, encoder::CommandEncoder},
+};
 
 pub trait Sketch: Sized {
   fn init(wgpu: &WGPUController) -> Self;

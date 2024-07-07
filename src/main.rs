@@ -2,10 +2,10 @@ use hollow_rs::{
   sketch::Sketch,
   wgpu::{
     bind::BindGroupWithLayout, buffer::Buffer, controller::WGPUController,
-    render_pass::RenderPassBuilder,
+    encoder::CommandEncoder,
   },
 };
-use wgpu::{CommandEncoder, RenderPipeline, TextureView};
+use wgpu::{RenderPipeline, TextureView};
 
 struct SimpleSketch {
   primary_bind_group: BindGroupWithLayout,
@@ -23,7 +23,6 @@ impl Sketch for SimpleSketch {
     let corner_vertex_buffer =
       wgpu.array_buffer(&[[-1., -1.], [1., -1.], [1., 1.], [-1., 1.]]);
     let corner_index_buffer = wgpu.array_buffer(&[2, 0, 1, 0, 2, 3]);
-
     let primary_bind_group = wgpu
       .build_bind_group_with_layout()
       .with_uniform_buffer_entry(&dimensions_buffer)
@@ -34,7 +33,6 @@ impl Sketch for SimpleSketch {
       .add_bind_group_layout(&primary_bind_group.layout)
       .add_vertex_buffer_layout(&corner_vertex_buffer)
       .build_with_shader(&wgpu.shader(wgpu::include_wgsl!("shader.wgsl")));
-
     Self {
       time_buffer,
       dimensions_buffer,
@@ -54,20 +52,15 @@ impl Sketch for SimpleSketch {
     t: f32,
     _delta_t: f32,
   ) {
-    wgpu.write_buffer(&self.dimensions_buffer, dimensions);
-    wgpu.write_buffer(&self.time_buffer, t);
-
-    let mut render_pass = RenderPassBuilder::new(encoder)
-      .add_simple_color_attachment(&surface_view)
-      .build();
-    render_pass.set_bind_group(0, &self.primary_bind_group, &[]);
-    render_pass.set_index_buffer(
-      self.corner_index_buffer.slice(..),
-      wgpu::IndexFormat::Uint16,
-    );
-    render_pass.set_vertex_buffer(0, self.corner_vertex_buffer.slice(..));
-    render_pass.set_pipeline(&self.background_pipeline);
-    render_pass.draw_indexed(0..6, 0, 0..1);
+    wgpu
+      .write_buffer(&self.dimensions_buffer, dimensions)
+      .write_buffer(&self.time_buffer, t);
+    encoder
+      .simple_render_pass(&surface_view)
+      .with_bind_groups([&self.primary_bind_group])
+      .with_vertex_buffer(0, &self.corner_vertex_buffer)
+      .with_pipeline(&self.background_pipeline)
+      .draw_indexed_u16(&self.corner_index_buffer, 0..6, 0, 0..1);
   }
 }
 
