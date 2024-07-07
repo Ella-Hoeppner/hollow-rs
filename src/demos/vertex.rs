@@ -31,7 +31,6 @@ pub struct VertexSketch {
 
 impl Sketch for VertexSketch {
   fn init(wgpu: &WGPUController) -> Self {
-    let time_buffer = wgpu.buffer(0.);
     let scale_buffer = wgpu.buffer([0., 0.]);
     let corner_vertex_buffer = wgpu.array_buffer(&[
       [1., 1.],
@@ -46,7 +45,6 @@ impl Sketch for VertexSketch {
     let primary_bind_group = wgpu
       .build_bind_group_with_layout()
       .with_uniform_buffer_entry(&scale_buffer)
-      .with_uniform_buffer_entry(&time_buffer)
       .build();
     let background_pipeline = wgpu
       .build_render_pipeline()

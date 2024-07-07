@@ -1,13 +1,8 @@
 @group(0) @binding(0) var<uniform> scale: vec2f;
+@group(1) @binding(0) var<storage, read> points: array<vec2f>;
 
 struct VertexInput {
   @location(0) corner_position: vec2f,
-}
-
-struct InstanceInput {
-  @location(1) x: f32,
-  @location(2) y: f32,
-  @location(3) radius: f32,
 }
 
 struct VertexOutput {
@@ -16,9 +11,9 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(vertex_in: VertexInput, instance_in: InstanceInput) -> VertexOutput {
+fn vertex(@builtin(instance_index) instance_index: u32, vertex_in: VertexInput) -> VertexOutput {
   return VertexOutput(
-    vec4f((vertex_in.corner_position * instance_in.radius + vec2f(instance_in.x,instance_in.y)) * scale, 0.0, 1.0),
+    vec4f((points[instance_index] + vertex_in.corner_position * 0.025) * scale, 0.0, 1.0),
     vertex_in.corner_position
   );
 }

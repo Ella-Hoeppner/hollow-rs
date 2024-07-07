@@ -11,9 +11,7 @@ struct VertexOutput {
 
 @vertex
 fn vertex(in: VertexInput) -> VertexOutput {
-  var out: VertexOutput;
-  out.vertex_pos = vec4f(in.corner_position, 0.0, 1.0);
-  return out;
+  return VertexOutput(vec4f(in.corner_position, 0.0, 1.0));
 }
 
 @fragment

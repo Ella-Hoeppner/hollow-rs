@@ -89,6 +89,15 @@ impl<'s, 'w, 'window> BindGroupLayoutBuilder<'s, 'w, 'window> {
   pub fn with_uniform_entry(self) -> Self {
     self.with_entry(BindGroupLayoutEntryBuilder::new())
   }
+  pub fn with_storage_entry(self, read_only: bool) -> Self {
+    self.with_entry(BindGroupLayoutEntryBuilder::new().with_ty(
+      wgpu::BindingType::Buffer {
+        ty: wgpu::BufferBindingType::Storage { read_only },
+        has_dynamic_offset: false,
+        min_binding_size: None,
+      },
+    ))
+  }
   pub fn build(self) -> BindGroupLayout {
     BindGroupLayout::new(self.wgpu.device.create_bind_group_layout(
       &BindGroupLayoutDescriptor {
@@ -217,6 +226,15 @@ impl<'s, 'l, 'a, 'w, 'window>
     buffer: &'b Buffer<T>,
   ) -> Self {
     self.layout_builder = self.layout_builder.with_uniform_entry();
+    self.group_builder = self.group_builder.with_buffer_entry(buffer);
+    self
+  }
+  pub fn with_storage_buffer_entry<'b: 'a, T: NoUninit>(
+    mut self,
+    buffer: &'b Buffer<T>,
+    read_only: bool,
+  ) -> Self {
+    self.layout_builder = self.layout_builder.with_storage_entry(read_only);
     self.group_builder = self.group_builder.with_buffer_entry(buffer);
     self
   }
