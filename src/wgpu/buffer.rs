@@ -23,7 +23,7 @@ impl<T: NoUninit> Buffer<T> {
       attributes,
     }
   }
-  pub fn instance_stepped_vertex_layout<'a>(
+  pub fn instance_layout<'a>(
     &self,
     attributes: &'a [VertexAttribute],
   ) -> VertexBufferLayout<'a> {
@@ -33,26 +33,15 @@ impl<T: NoUninit> Buffer<T> {
       attributes,
     }
   }
-}
-
-impl<'a> Into<VertexBufferLayout<'a>> for &'a Buffer<f32> {
-  fn into(self) -> VertexBufferLayout<'a> {
-    self.vertex_layout(&wgpu::vertex_attr_array![0 => Float32])
-  }
-}
-impl<'a> Into<VertexBufferLayout<'a>> for &'a Buffer<[f32; 2]> {
-  fn into(self) -> VertexBufferLayout<'a> {
-    self.vertex_layout(&wgpu::vertex_attr_array![0 => Float32x2])
-  }
-}
-impl<'a> Into<VertexBufferLayout<'a>> for &'a Buffer<[f32; 3]> {
-  fn into(self) -> VertexBufferLayout<'a> {
-    self.vertex_layout(&wgpu::vertex_attr_array![0 => Float32x3])
-  }
-}
-impl<'a> Into<VertexBufferLayout<'a>> for &'a Buffer<[f32; 4]> {
-  fn into(self) -> VertexBufferLayout<'a> {
-    self.vertex_layout(&wgpu::vertex_attr_array![0 => Float32x4])
+  pub fn instance_stepped_vertex_layout<'a>(
+    &self,
+    attributes: &'a [VertexAttribute],
+  ) -> VertexBufferLayout<'a> {
+    VertexBufferLayout {
+      array_stride: std::mem::size_of::<T>() as wgpu::BufferAddress,
+      step_mode: wgpu::VertexStepMode::Instance,
+      attributes,
+    }
   }
 }
 

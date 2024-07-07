@@ -1,8 +1,6 @@
 @group(0) @binding(0) var<uniform> dimensions: vec2f;
 @group(0) @binding(1) var<uniform> time: f32;
 
-// Forms
-
 struct VertexInput {
   @location(0) corner_position: vec2f,
 }

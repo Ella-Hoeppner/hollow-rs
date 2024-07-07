@@ -78,6 +78,7 @@ impl<'w, 'window, 's, 'v, 'b, 'shader>
     layout: V,
   ) -> Self {
     self.vertex_buffer_layouts.push(layout.into());
+    println!("{:?}", self.vertex_buffer_layouts.len());
     self
   }
   pub fn build_with_shader_entry_points<'vs, 'fs>(

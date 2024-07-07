@@ -163,6 +163,10 @@ impl<'p> RenderPass<'p> {
     self.draw_indexed(indices, base_vertex, instances);
     self
   }
+  pub fn draw(mut self, vertices: Range<u32>, instances: Range<u32>) -> Self {
+    self.pass.draw(vertices, instances);
+    self
+  }
 }
 pub trait IntoVertexBufferData<'s> {
   fn into_vertex_buffer_data(self) -> BufferSlice<'s>;

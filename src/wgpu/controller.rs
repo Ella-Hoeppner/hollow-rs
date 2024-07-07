@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use bytemuck::NoUninit;
+use bytemuck::{NoUninit, Zeroable};
 use wgpu::{ShaderModule, ShaderModuleDescriptor};
 use winit::window::Window;
 
@@ -108,15 +108,6 @@ impl<'window> WGPUController<'window> {
     self
   }
   pub fn write_array_buffer<T: NoUninit>(
-    &self,
-    buffer: &Buffer<T>,
-    data: &[T],
-  ) {
-    self
-      .queue
-      .write_buffer(buffer, 0, bytemuck::cast_slice(data))
-  }
-  pub fn write_array_buffer_2<T: NoUninit>(
     &self,
     buffer: &Buffer<T>,
     data: &[T],
