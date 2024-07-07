@@ -13,7 +13,7 @@ pub struct SimpleSketch {
   corner_index_buffer: Buffer<u16>,
   time_buffer: Buffer<f32>,
   dimensions_buffer: Buffer<[f32; 2]>,
-  background_pipeline: RenderPipeline,
+  render_pipeline: RenderPipeline,
 }
 
 impl Sketch for SimpleSketch {
@@ -28,7 +28,7 @@ impl Sketch for SimpleSketch {
       .with_uniform_buffer_entry(&dimensions_buffer)
       .with_uniform_buffer_entry(&time_buffer)
       .build();
-    let background_pipeline = wgpu
+    let render_pipeline = wgpu
       .build_render_pipeline()
       .add_bind_group_layout(&primary_bind_group.layout)
       .add_vertex_buffer_layout(
@@ -42,7 +42,7 @@ impl Sketch for SimpleSketch {
       primary_bind_group,
       corner_vertex_buffer,
       corner_index_buffer,
-      background_pipeline,
+      render_pipeline,
     }
   }
 
@@ -62,7 +62,7 @@ impl Sketch for SimpleSketch {
       .simple_render_pass(&surface_view)
       .with_bind_groups([&self.primary_bind_group])
       .with_vertex_buffer(0, &self.corner_vertex_buffer)
-      .with_pipeline(&self.background_pipeline)
+      .with_pipeline(&self.render_pipeline)
       .draw_indexed_u16(&self.corner_index_buffer, 0..6, 0, 0..1);
   }
 }

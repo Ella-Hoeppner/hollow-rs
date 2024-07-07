@@ -26,7 +26,7 @@ pub struct VertexSketch {
   circles: [Circle; CIRCLES],
   circle_instance_buffer: Buffer<Circle>,
   scale_buffer: Buffer<[f32; 2]>,
-  background_pipeline: RenderPipeline,
+  render_pipeline: RenderPipeline,
 }
 
 impl Sketch for VertexSketch {
@@ -46,7 +46,7 @@ impl Sketch for VertexSketch {
       .build_bind_group_with_layout()
       .with_uniform_buffer_entry(&scale_buffer)
       .build();
-    let background_pipeline = wgpu
+    let render_pipeline = wgpu
       .build_render_pipeline()
       .add_bind_group_layout(&primary_bind_group.layout)
       .add_vertex_buffer_layout(
@@ -63,7 +63,7 @@ impl Sketch for VertexSketch {
       primary_bind_group,
       corner_vertex_buffer,
       circle_instance_buffer,
-      background_pipeline,
+      render_pipeline,
     }
   }
 
@@ -101,7 +101,7 @@ impl Sketch for VertexSketch {
       .with_bind_groups([&self.primary_bind_group])
       .with_vertex_buffer(0, &self.corner_vertex_buffer)
       .with_vertex_buffer(1, &self.circle_instance_buffer)
-      .with_pipeline(&self.background_pipeline)
+      .with_pipeline(&self.render_pipeline)
       .draw(0..6, 0..CIRCLES as u32);
   }
 }
