@@ -81,19 +81,13 @@ pub async fn run_sketch<S: Sketch>() {
               let surface_view = surface_texture
                 .texture
                 .create_view(&wgpu::TextureViewDescriptor::default());
-              let mut encoder = app.wgpu.create_command_encoder();
               sketch.update(
                 &app.wgpu,
                 surface_view,
-                &mut encoder,
                 app.surface_pixel_dimensions,
                 app.time(),
                 app.delta_time(),
               );
-              app
-                .wgpu
-                .queue
-                .submit(std::iter::once(encoder.encoder.finish()));
               surface_texture.present();
             }
           }

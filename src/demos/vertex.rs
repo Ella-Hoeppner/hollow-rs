@@ -6,7 +6,6 @@ use crate::{
     bind::BindGroupWithLayout,
     buffer::{ArrayBuffer, Buffer},
     controller::WGPUController,
-    encoder::CommandEncoder,
   },
 };
 use bytemuck::{NoUninit, Zeroable};
@@ -73,7 +72,6 @@ impl Sketch for VertexSketch {
     &mut self,
     wgpu: &WGPUController,
     surface_view: TextureView,
-    encoder: &mut CommandEncoder,
     dimensions: [usize; 2],
     t: f32,
     _delta_t: f32,
@@ -98,12 +96,14 @@ impl Sketch for VertexSketch {
         ],
       )
       .write_array_buffer(&self.circle_instance_buffer, &self.circles);
-    encoder
-      .simple_render_pass(&surface_view)
-      .with_bind_groups([&self.primary_bind_group])
-      .with_vertex_buffer(0, &self.corner_vertex_buffer)
-      .with_vertex_buffer(1, &self.circle_instance_buffer)
-      .with_pipeline(&self.render_pipeline)
-      .draw(0..6, 0..CIRCLES as u32);
+    wgpu.with_encoder(|encoder| {
+      encoder
+        .simple_render_pass(&surface_view)
+        .with_bind_groups([&self.primary_bind_group])
+        .with_vertex_buffer(0, &self.corner_vertex_buffer)
+        .with_vertex_buffer(1, &self.circle_instance_buffer)
+        .with_pipeline(&self.render_pipeline)
+        .draw(0..6, 0..CIRCLES as u32);
+    })
   }
 }

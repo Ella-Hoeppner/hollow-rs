@@ -4,7 +4,6 @@ use crate::{
     bind::BindGroupWithLayout,
     buffer::{ArrayBuffer, Buffer},
     controller::WGPUController,
-    encoder::CommandEncoder,
   },
 };
 use wgpu::{RenderPipeline, TextureView};
@@ -52,7 +51,6 @@ impl Sketch for SimpleSketch {
     &mut self,
     wgpu: &WGPUController,
     surface_view: TextureView,
-    encoder: &mut CommandEncoder,
     dimensions: [usize; 2],
     t: f32,
     _delta_t: f32,
@@ -60,11 +58,13 @@ impl Sketch for SimpleSketch {
     wgpu
       .write_buffer(&self.dimensions_buffer, dimensions)
       .write_buffer(&self.time_buffer, t);
-    encoder
-      .simple_render_pass(&surface_view)
-      .with_bind_groups([&self.primary_bind_group])
-      .with_vertex_buffer(0, &self.corner_vertex_buffer)
-      .with_pipeline(&self.render_pipeline)
-      .draw_indexed_u16(&self.corner_index_buffer, 0..6, 0, 0..1);
+    wgpu.with_encoder(|encoder| {
+      encoder
+        .simple_render_pass(&surface_view)
+        .with_bind_groups([&self.primary_bind_group])
+        .with_vertex_buffer(0, &self.corner_vertex_buffer)
+        .with_pipeline(&self.render_pipeline)
+        .draw_indexed_u16(&self.corner_index_buffer, 0..6, 0, 0..1);
+    });
   }
 }

@@ -74,7 +74,7 @@ impl<'window> WGPUController<'window> {
       config,
     }
   }
-  pub fn create_command_encoder(&self) -> CommandEncoder {
+  pub fn create_encoder(&self) -> CommandEncoder {
     CommandEncoder::new(
       self
         .device
@@ -82,6 +82,9 @@ impl<'window> WGPUController<'window> {
           label: None,
         }),
     )
+  }
+  pub fn finish_encoder(&self, encoder: CommandEncoder) {
+    self.queue.submit(std::iter::once(encoder.encoder.finish()));
   }
   pub fn shader(&self, source: ShaderModuleDescriptor<'_>) -> ShaderModule {
     self.device.create_shader_module(source)
@@ -156,5 +159,10 @@ impl<'window> WGPUController<'window> {
   }
   pub fn build_bind_group_with_layout(&self) -> BindGroupWithLayoutBuilder {
     BindGroupWithLayoutBuilder::new(self)
+  }
+  pub fn with_encoder(&self, mut f: impl FnMut(&mut CommandEncoder)) {
+    let mut encoder = self.create_encoder();
+    f(&mut encoder);
+    self.finish_encoder(encoder);
   }
 }

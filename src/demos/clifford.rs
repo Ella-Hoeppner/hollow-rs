@@ -4,7 +4,6 @@ use crate::{
     bind::BindGroupWithLayout,
     buffer::{ArrayBuffer, Buffer},
     controller::WGPUController,
-    encoder::CommandEncoder,
   },
 };
 use rand::Rng;
@@ -86,7 +85,6 @@ impl Sketch for CliffordSketch {
     &mut self,
     wgpu: &WGPUController,
     surface_view: TextureView,
-    encoder: &mut CommandEncoder,
     dimensions: [usize; 2],
     _t: f32,
     _delta_t: f32,
@@ -99,19 +97,21 @@ impl Sketch for CliffordSketch {
         dim_min / dimensions[1] as f32,
       ],
     );
-    encoder
-      .compute_pass()
-      .with_pipeline(&self.compute_pipeline)
-      .with_bind_groups([&self.compute_bind_group])
-      .dispatch(POINT_GROUP_MULTIPLE as u32, 1, 1);
-    encoder
-      .simple_render_pass(&surface_view)
-      .with_bind_groups([
-        &self.uniform_bind_group,
-        &self.render_points_bind_group,
-      ])
-      .with_vertex_buffer(0, &self.corner_vertex_buffer)
-      .with_pipeline(&self.render_pipeline)
-      .draw(0..6, 0..POINTS as u32);
+    wgpu.with_encoder(|encoder| {
+      encoder
+        .compute_pass()
+        .with_pipeline(&self.compute_pipeline)
+        .with_bind_groups([&self.compute_bind_group])
+        .dispatch(POINT_GROUP_MULTIPLE as u32, 1, 1);
+      encoder
+        .simple_render_pass(&surface_view)
+        .with_bind_groups([
+          &self.uniform_bind_group,
+          &self.render_points_bind_group,
+        ])
+        .with_vertex_buffer(0, &self.corner_vertex_buffer)
+        .with_pipeline(&self.render_pipeline)
+        .draw(0..6, 0..POINTS as u32);
+    })
   }
 }
