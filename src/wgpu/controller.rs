@@ -8,6 +8,7 @@ use super::{
   bind::{BindGroupLayoutBuilder, BindGroupWithLayoutBuilder},
   buffer::{
     ArrayBuffer, ArrayBufferBuilder, Buffer, BufferBuilder, IntoBufferData,
+    VectorBuffer, VectorBufferBuilder,
   },
   encoder::CommandEncoder,
   pipeline::{ComputePipelineBuilder, RenderPipelineBuilder},
@@ -97,6 +98,9 @@ impl<'window> WGPUController<'window> {
   pub fn array_buffer<T: NoUninit>(&self, contents: &[T]) -> ArrayBuffer<T> {
     ArrayBufferBuilder::new(self, contents).build()
   }
+  pub fn vector_buffer<T: NoUninit>(&self) -> VectorBuffer<T> {
+    VectorBufferBuilder::new(self).build()
+  }
   pub fn write_buffer<T: NoUninit>(
     &self,
     buffer: &Buffer<T>,
@@ -117,6 +121,28 @@ impl<'window> WGPUController<'window> {
     self
       .queue
       .write_buffer(buffer, 0, bytemuck::cast_slice(data));
+    self
+  }
+  pub fn write_vector_buffer_unchecked<T: NoUninit>(
+    &self,
+    buffer: &VectorBuffer<T>,
+    data: &[T],
+  ) -> &Self {
+    self
+      .queue
+      .write_buffer(buffer, 0, bytemuck::cast_slice(data));
+    self
+  }
+  pub fn write_vector_buffer<T: NoUninit>(
+    &self,
+    buffer: &mut VectorBuffer<T>,
+    data: &[T],
+  ) -> &Self {
+    if data.len() > buffer.len() {
+      buffer.expand_with(self, data);
+    } else {
+      self.write_vector_buffer_unchecked(buffer, data);
+    }
     self
   }
   pub fn build_render_pipeline(&self) -> RenderPipelineBuilder {

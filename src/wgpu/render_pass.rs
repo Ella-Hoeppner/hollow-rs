@@ -1,13 +1,12 @@
 use std::ops::{Deref, DerefMut, Range};
 
-use bytemuck::NoUninit;
 use wgpu::{
   BufferSlice, QuerySet, RenderPassColorAttachment,
   RenderPassDepthStencilAttachment, RenderPassTimestampWrites, TextureView,
 };
 
 use super::{
-  buffer::{ArrayBuffer, Buffer},
+  buffer::{ArrayBuffer, Buffer, IntoVertexBufferData},
   encoder::CommandEncoder,
 };
 
@@ -169,24 +168,6 @@ impl<'p> RenderPass<'p> {
   pub fn draw(mut self, vertices: Range<u32>, instances: Range<u32>) -> Self {
     self.pass.draw(vertices, instances);
     self
-  }
-}
-pub trait IntoVertexBufferData<'s> {
-  fn into_vertex_buffer_data(self) -> BufferSlice<'s>;
-}
-impl<'s> IntoVertexBufferData<'s> for BufferSlice<'s> {
-  fn into_vertex_buffer_data(self) -> BufferSlice<'s> {
-    self
-  }
-}
-impl<'s, T: NoUninit> IntoVertexBufferData<'s> for &'s Buffer<T> {
-  fn into_vertex_buffer_data(self) -> BufferSlice<'s> {
-    self.slice(..)
-  }
-}
-impl<'s, T: NoUninit> IntoVertexBufferData<'s> for &'s ArrayBuffer<T> {
-  fn into_vertex_buffer_data(self) -> BufferSlice<'s> {
-    self.slice(..)
   }
 }
 

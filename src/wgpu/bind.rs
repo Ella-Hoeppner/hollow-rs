@@ -1,12 +1,11 @@
 use std::{num::NonZero, ops::Deref};
 
-use bytemuck::NoUninit;
 use wgpu::{
   BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor,
   BindGroupLayoutEntry, BindingType, ShaderStages,
 };
 
-use super::{buffer::Buffer, controller::WGPUController};
+use super::controller::WGPUController;
 
 #[derive(Default)]
 pub struct BindGroupLayoutEntryBuilder {
