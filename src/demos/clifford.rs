@@ -1,7 +1,9 @@
 use crate::{
   sketch::Sketch,
   wgpu::{
-    bind::BindGroupWithLayout, buffer::Buffer, controller::WGPUController,
+    bind::BindGroupWithLayout,
+    buffer::{ArrayBuffer, Buffer},
+    controller::WGPUController,
     encoder::CommandEncoder,
   },
 };
@@ -15,7 +17,7 @@ pub struct CliffordSketch {
   uniform_bind_group: BindGroupWithLayout,
   render_points_bind_group: BindGroupWithLayout,
   compute_bind_group: BindGroupWithLayout,
-  corner_vertex_buffer: Buffer<[f32; 2]>,
+  corner_vertex_buffer: ArrayBuffer<[f32; 2]>,
   scale_buffer: Buffer<[f32; 2]>,
   render_pipeline: RenderPipeline,
   compute_pipeline: ComputePipeline,

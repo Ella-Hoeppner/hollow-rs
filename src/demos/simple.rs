@@ -1,7 +1,9 @@
 use crate::{
   sketch::Sketch,
   wgpu::{
-    bind::BindGroupWithLayout, buffer::Buffer, controller::WGPUController,
+    bind::BindGroupWithLayout,
+    buffer::{ArrayBuffer, Buffer},
+    controller::WGPUController,
     encoder::CommandEncoder,
   },
 };
@@ -9,8 +11,8 @@ use wgpu::{RenderPipeline, TextureView};
 
 pub struct SimpleSketch {
   primary_bind_group: BindGroupWithLayout,
-  corner_vertex_buffer: Buffer<[f32; 2]>,
-  corner_index_buffer: Buffer<u16>,
+  corner_vertex_buffer: ArrayBuffer<[f32; 2]>,
+  corner_index_buffer: ArrayBuffer<u16>,
   time_buffer: Buffer<f32>,
   dimensions_buffer: Buffer<[f32; 2]>,
   render_pipeline: RenderPipeline,

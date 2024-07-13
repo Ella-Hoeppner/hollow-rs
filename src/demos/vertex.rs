@@ -3,7 +3,9 @@ use std::f32::consts::TAU;
 use crate::{
   sketch::Sketch,
   wgpu::{
-    bind::BindGroupWithLayout, buffer::Buffer, controller::WGPUController,
+    bind::BindGroupWithLayout,
+    buffer::{ArrayBuffer, Buffer},
+    controller::WGPUController,
     encoder::CommandEncoder,
   },
 };
@@ -22,9 +24,9 @@ struct Circle {
 
 pub struct VertexSketch {
   primary_bind_group: BindGroupWithLayout,
-  corner_vertex_buffer: Buffer<[f32; 2]>,
+  corner_vertex_buffer: ArrayBuffer<[f32; 2]>,
   circles: [Circle; CIRCLES],
-  circle_instance_buffer: Buffer<Circle>,
+  circle_instance_buffer: ArrayBuffer<Circle>,
   scale_buffer: Buffer<[f32; 2]>,
   render_pipeline: RenderPipeline,
 }

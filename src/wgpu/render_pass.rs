@@ -6,7 +6,10 @@ use wgpu::{
   RenderPassDepthStencilAttachment, RenderPassTimestampWrites, TextureView,
 };
 
-use super::{buffer::Buffer, encoder::CommandEncoder};
+use super::{
+  buffer::{ArrayBuffer, Buffer},
+  encoder::CommandEncoder,
+};
 
 pub struct RenderPassBuilder<'e, 's, 'query, 'tex, 'desc> {
   encoder: &'e mut CommandEncoder,
@@ -181,6 +184,11 @@ impl<'s, T: NoUninit> IntoVertexBufferData<'s> for &'s Buffer<T> {
     self.slice(..)
   }
 }
+impl<'s, T: NoUninit> IntoVertexBufferData<'s> for &'s ArrayBuffer<T> {
+  fn into_vertex_buffer_data(self) -> BufferSlice<'s> {
+    self.slice(..)
+  }
+}
 
 pub trait IntoIndexBufferDataU16<'s> {
   fn into_index_buffer_data_u16(self) -> BufferSlice<'s>;
@@ -195,6 +203,11 @@ impl<'s, 'b: 's> IntoIndexBufferDataU16<'s> for &'b Buffer<u16> {
     self.slice(..)
   }
 }
+impl<'s, 'b: 's> IntoIndexBufferDataU16<'s> for &'b ArrayBuffer<u16> {
+  fn into_index_buffer_data_u16(self) -> BufferSlice<'s> {
+    self.slice(..)
+  }
+}
 pub trait IntoIndexBufferDataU32<'s> {
   fn into_index_buffer_data_u32(self) -> BufferSlice<'s>;
 }
@@ -204,6 +217,11 @@ impl<'s> IntoIndexBufferDataU32<'s> for BufferSlice<'s> {
   }
 }
 impl<'s, 'b: 's> IntoIndexBufferDataU32<'s> for &'b Buffer<u32> {
+  fn into_index_buffer_data_u32(self) -> BufferSlice<'s> {
+    self.slice(..)
+  }
+}
+impl<'s, 'b: 's> IntoIndexBufferDataU32<'s> for &'b ArrayBuffer<u32> {
   fn into_index_buffer_data_u32(self) -> BufferSlice<'s> {
     self.slice(..)
   }

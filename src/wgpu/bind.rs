@@ -143,13 +143,13 @@ impl<'l, 's, 'a, 'w, 'window> BindGroupBuilder<'l, 's, 'a, 'w, 'window> {
     self.label = Some(label);
     self
   }
-  pub fn with_buffer_entry<'b: 'a, T: NoUninit>(
+  pub fn with_buffer_entry<'b: 'a, B: Into<&'b wgpu::Buffer>>(
     mut self,
-    buffer: &'b Buffer<T>,
+    buffer: B,
   ) -> Self {
     self.entries.push(BindGroupEntry {
       binding: self.entries.len() as u32,
-      resource: buffer.as_entire_binding(),
+      resource: buffer.into().as_entire_binding(),
     });
     self
   }
@@ -223,34 +223,40 @@ impl<'s, 'l, 'a, 'w, 'window>
     self.group_builder = self.group_builder.with_label(label);
     self
   }
-  pub fn with_buffer_entry<'b: 'a, T: NoUninit>(
+  pub fn with_buffer_entry<'b: 'a, B: Into<&'b wgpu::Buffer>>(
     mut self,
     entry: BindGroupLayoutEntryBuilder,
-    buffer: &'b Buffer<T>,
+    buffer: B,
   ) -> Self {
     self.layout_builder = self.layout_builder.with_entry(entry);
     self.group_builder = self.group_builder.with_buffer_entry(buffer);
     self
   }
-  pub fn with_uniform_buffer_entry<'b: 'a, T: NoUninit>(
+  pub fn with_uniform_buffer_entry<'b: 'a, B: Into<&'b wgpu::Buffer>>(
     mut self,
-    buffer: &'b Buffer<T>,
+    buffer: B,
   ) -> Self {
     self.layout_builder = self.layout_builder.with_uniform_entry();
     self.group_builder = self.group_builder.with_buffer_entry(buffer);
     self
   }
-  pub fn with_read_only_storage_buffer_entry<'b: 'a, T: NoUninit>(
+  pub fn with_read_only_storage_buffer_entry<
+    'b: 'a,
+    B: Into<&'b wgpu::Buffer>,
+  >(
     mut self,
-    buffer: &'b Buffer<T>,
+    buffer: B,
   ) -> Self {
     self.layout_builder = self.layout_builder.with_read_only_storage_entry();
     self.group_builder = self.group_builder.with_buffer_entry(buffer);
     self
   }
-  pub fn with_compute_writable_storage_buffer_entry<'b: 'a, T: NoUninit>(
+  pub fn with_compute_writable_storage_buffer_entry<
+    'b: 'a,
+    B: Into<&'b wgpu::Buffer>,
+  >(
     mut self,
-    buffer: &'b Buffer<T>,
+    buffer: B,
   ) -> Self {
     self.layout_builder =
       self.layout_builder.with_compute_writable_storage_entry();

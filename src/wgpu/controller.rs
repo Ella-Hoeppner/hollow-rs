@@ -6,7 +6,9 @@ use winit::window::Window;
 
 use super::{
   bind::{BindGroupLayoutBuilder, BindGroupWithLayoutBuilder},
-  buffer::{Buffer, BufferBuilder, IntoBufferData},
+  buffer::{
+    ArrayBuffer, ArrayBufferBuilder, Buffer, BufferBuilder, IntoBufferData,
+  },
   encoder::CommandEncoder,
   pipeline::{ComputePipelineBuilder, RenderPipelineBuilder},
 };
@@ -92,8 +94,8 @@ impl<'window> WGPUController<'window> {
   pub fn buffer<T: NoUninit>(&self, contents: T) -> Buffer<T> {
     BufferBuilder::new(self, &[contents]).build()
   }
-  pub fn array_buffer<T: NoUninit>(&self, contents: &[T]) -> Buffer<T> {
-    BufferBuilder::new(self, contents).build()
+  pub fn array_buffer<T: NoUninit>(&self, contents: &[T]) -> ArrayBuffer<T> {
+    ArrayBufferBuilder::new(self, contents).build()
   }
   pub fn write_buffer<T: NoUninit>(
     &self,
@@ -109,12 +111,13 @@ impl<'window> WGPUController<'window> {
   }
   pub fn write_array_buffer<T: NoUninit>(
     &self,
-    buffer: &Buffer<T>,
+    buffer: &ArrayBuffer<T>,
     data: &[T],
-  ) {
+  ) -> &Self {
     self
       .queue
-      .write_buffer(buffer, 0, bytemuck::cast_slice(data))
+      .write_buffer(buffer, 0, bytemuck::cast_slice(data));
+    self
   }
   pub fn build_render_pipeline(&self) -> RenderPipelineBuilder {
     RenderPipelineBuilder::new(self)
