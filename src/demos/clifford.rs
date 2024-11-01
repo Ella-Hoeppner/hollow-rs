@@ -6,7 +6,7 @@ use crate::{
     buffer::{ArrayBuffer, Buffer},
     controller::WGPUController,
   },
-  wgsl_const_strings,
+  wgsl_constants_string,
 };
 use rand::Rng;
 use wgpu::{ComputePipeline, RenderPipeline, TextureView};
@@ -76,7 +76,7 @@ impl Sketch for CliffordSketch {
       .add_bind_group_layout(&compute_bind_group.layout)
       .build_with_shader(&wgpu.shader(include_prefixed_wgsl!(
         "clifford_compute.wgsl",
-        wgsl_const_strings!(A: f32, B: f32, C: f32, D: f32)
+        wgsl_constants_string!(A: f32, B: f32, C: f32, D: f32)
       )));
     Self {
       scale_buffer,

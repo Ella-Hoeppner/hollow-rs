@@ -16,24 +16,24 @@ macro_rules! include_prefixed_wgsl {
 }
 
 #[macro_export]
-macro_rules! wgsl_const_string {
+macro_rules! wgsl_constant_string {
   ($x:ident : $t:ident) => {
     format!("const {}: {} = {};", stringify!($x), stringify!($t), $x)
   };
 }
 
 #[macro_export]
-macro_rules! wgsl_const_strings {
+macro_rules! wgsl_constants_string {
   ($x:ident : $t:ident $(,)?) => {{
-    use crate::wgsl_const_string;
-    wgsl_const_string!($x : $t)
+    use $crate::wgsl_constant_string;
+    wgsl_constant_string!($x : $t)
   }};
 
   ($x:ident : $t:ident, $($rest:tt)+) => {{
-    use crate::wgsl_const_string;
+    use $crate::wgsl_constant_string;
     format!("{}\n{}",
-      wgsl_const_string!($x : $t),
-      wgsl_const_strings!($($rest)+)
+      wgsl_constant_string!($x : $t),
+      wgsl_constants_string!($($rest)+)
     )
   }};
 }
