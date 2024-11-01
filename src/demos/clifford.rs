@@ -1,13 +1,20 @@
 use crate::{
+  include_prefixed_wgsl,
   sketch::Sketch,
   wgpu::{
     bind::BindGroupWithLayout,
     buffer::{ArrayBuffer, Buffer},
     controller::WGPUController,
   },
+  wgsl_const_strings,
 };
 use rand::Rng;
 use wgpu::{ComputePipeline, RenderPipeline, TextureView};
+
+const A: f32 = -1.4;
+const B: f32 = 1.6;
+const C: f32 = 1.;
+const D: f32 = 0.7;
 
 const POINT_GROUP_MULTIPLE: usize = 1000;
 const POINTS: usize = 256 * POINT_GROUP_MULTIPLE;
@@ -67,9 +74,10 @@ impl Sketch for CliffordSketch {
     let compute_pipeline = wgpu
       .build_compute_pipeline()
       .add_bind_group_layout(&compute_bind_group.layout)
-      .build_with_shader(
-        &wgpu.shader(wgpu::include_wgsl!("clifford_compute.wgsl")),
-      );
+      .build_with_shader(&wgpu.shader(include_prefixed_wgsl!(
+        "clifford_compute.wgsl",
+        wgsl_const_strings!(A: f32, B: f32, C: f32, D: f32)
+      )));
     Self {
       scale_buffer,
       uniform_bind_group,

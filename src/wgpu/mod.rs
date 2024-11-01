@@ -5,3 +5,4 @@ pub mod controller;
 pub mod encoder;
 pub mod pipeline;
 pub mod render_pass;
+pub mod shaders;
