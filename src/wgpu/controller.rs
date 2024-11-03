@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
-use bytemuck::NoUninit;
-use wgpu::{ShaderModule, ShaderModuleDescriptor};
+use bytemuck::{NoUninit, Zeroable};
+use wgpu::{
+  ShaderModule, ShaderModuleDescriptor, VertexAttribute, VertexBufferLayout,
+};
 use winit::window::Window;
 
 use super::{
@@ -98,8 +100,26 @@ impl<'window> WGPUController<'window> {
   pub fn buffer<T: NoUninit>(&self, contents: T) -> Buffer<T> {
     BufferBuilder::new(self, &[contents]).build()
   }
+  pub fn build_array_buffer<T: NoUninit>(
+    &self,
+    contents: Vec<T>,
+  ) -> ArrayBufferBuilder<T> {
+    ArrayBufferBuilder::from_owned_contents(self, contents)
+  }
   pub fn array_buffer<T: NoUninit>(&self, contents: &[T]) -> ArrayBuffer<T> {
-    ArrayBufferBuilder::new(self, contents).build()
+    ArrayBufferBuilder::from_contents(self, contents).build()
+  }
+  pub fn build_empty_array_buffer<T: NoUninit + Zeroable>(
+    &self,
+    size: usize,
+  ) -> ArrayBufferBuilder<T> {
+    ArrayBufferBuilder::empty(self, size)
+  }
+  pub fn empty_array_buffer<T: NoUninit + Zeroable>(
+    &self,
+    size: usize,
+  ) -> ArrayBuffer<T> {
+    self.build_empty_array_buffer(size).build()
   }
   pub fn vector_buffer<T: NoUninit>(&self) -> VectorBuffer<T> {
     VectorBufferBuilder::new(self).build()

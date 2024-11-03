@@ -63,6 +63,13 @@ impl<'e, 's, 'query: 'e, 'tex: 'e, 'desc>
     self.depth_stencil_attachment = Some(attachment);
     self
   }
+  pub fn with_optional_depth_stencil_attachment(
+    mut self,
+    attachment: Option<RenderPassDepthStencilAttachment<'tex>>,
+  ) -> Self {
+    self.depth_stencil_attachment = attachment;
+    self
+  }
   pub fn with_occlusion_query_set(mut self, set: &'query QuerySet) -> Self {
     self.occlusion_query_set = Some(set);
     self
@@ -103,6 +110,13 @@ impl<'p> RenderPass<'p> {
       wgpu::IndexFormat::Uint16,
     )
   }
+  pub fn with_index_buffer_u16(
+    mut self,
+    data: impl IntoIndexBufferDataU16<'p>,
+  ) -> Self {
+    self.set_index_buffer_u16(data);
+    self
+  }
   pub fn set_index_buffer_u32(
     &mut self,
     data: impl IntoIndexBufferDataU32<'p>,
@@ -111,6 +125,17 @@ impl<'p> RenderPass<'p> {
       data.into_index_buffer_data_u32(),
       wgpu::IndexFormat::Uint32,
     )
+  }
+  pub fn with_index_buffer_u32(
+    mut self,
+    data: impl IntoIndexBufferDataU32<'p>,
+  ) -> Self {
+    self.set_index_buffer_u32(data);
+    self
+  }
+  pub fn with_stencil_reference(mut self, reference: u32) -> Self {
+    self.set_stencil_reference(reference);
+    self
   }
   pub fn with_offset_bind_group(
     mut self,

@@ -59,6 +59,12 @@ impl BindGroupLayoutEntryBuilder {
   }
 }
 
+impl From<BindGroupLayoutEntryBuilder> for BindGroupLayoutEntry {
+  fn from(builder: BindGroupLayoutEntryBuilder) -> Self {
+    builder.build()
+  }
+}
+
 pub struct BindGroupLayoutBuilder<'s, 'w, 'window> {
   wgpu: &'w WGPUController<'window>,
   entries: Vec<BindGroupLayoutEntry>,
@@ -83,6 +89,10 @@ impl<'s, 'w, 'window> BindGroupLayoutBuilder<'s, 'w, 'window> {
         .with_binding_if_none(self.entries.len() as u32)
         .build(),
     );
+    self
+  }
+  pub fn with_raw_entry(mut self, entry: BindGroupLayoutEntry) -> Self {
+    self.entries.push(entry);
     self
   }
   pub fn with_uniform_entry(self) -> Self {
@@ -150,6 +160,10 @@ impl<'l, 's, 'a, 'w, 'window> BindGroupBuilder<'l, 's, 'a, 'w, 'window> {
       binding: self.entries.len() as u32,
       resource: buffer.into().as_entire_binding(),
     });
+    self
+  }
+  pub fn with_raw_entry(mut self, entry: BindGroupEntry<'a>) -> Self {
+    self.entries.push(entry);
     self
   }
   pub fn build(self) -> BindGroup {
@@ -229,6 +243,15 @@ impl<'s, 'l, 'a, 'w, 'window>
   ) -> Self {
     self.layout_builder = self.layout_builder.with_entry(entry);
     self.group_builder = self.group_builder.with_buffer_entry(buffer);
+    self
+  }
+  pub fn with_raw_entry(
+    mut self,
+    layout_entry: BindGroupLayoutEntry,
+    entry: BindGroupEntry<'a>,
+  ) -> Self {
+    self.layout_builder = self.layout_builder.with_raw_entry(layout_entry);
+    self.group_builder = self.group_builder.with_raw_entry(entry);
     self
   }
   pub fn with_uniform_buffer_entry<'b: 'a, B: Into<&'b wgpu::Buffer>>(
