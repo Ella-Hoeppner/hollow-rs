@@ -18,6 +18,20 @@ pub struct VectorBuffer<T: NoUninit> {
 }
 
 impl<T: NoUninit> VectorBuffer<T> {
+  pub fn empty(wgpu: &WGPUController, usage: BufferUsages) -> Self {
+    Self {
+      _phantom: PhantomData,
+      len: 0,
+      buffer: wgpu.device.create_buffer_init(
+        &wgpu::util::BufferInitDescriptor {
+          label: None,
+          contents: &[],
+          usage,
+        },
+      ),
+      usage,
+    }
+  }
   pub fn len(&self) -> usize {
     self.len
   }
@@ -51,7 +65,7 @@ impl<T: NoUninit> VectorBuffer<T> {
       attributes,
     }
   }
-  pub(crate) fn expand_with(&mut self, wgpu: &WGPUController, data: &[T]) {
+  fn expand_with(&mut self, wgpu: &WGPUController, data: &[T]) {
     self.len = data.len();
     self.buffer =
       wgpu
@@ -61,6 +75,16 @@ impl<T: NoUninit> VectorBuffer<T> {
           contents: bytemuck::cast_slice(data),
           usage: self.usage,
         });
+  }
+  pub fn overwrite(&mut self, wgpu: &WGPUController, data: &[T]) {
+    if data.len() > self.len {
+      self.expand_with(wgpu, data);
+    } else {
+      wgpu
+        .queue
+        .write_buffer(&self.buffer, 0, bytemuck::cast_slice(data));
+      self.len = data.len();
+    }
   }
 }
 

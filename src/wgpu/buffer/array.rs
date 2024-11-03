@@ -98,7 +98,7 @@ impl<'s, T: NoUninit> IntoVertexBufferData<'s> for &'s ArrayBuffer<T> {
   }
 }
 
-enum Contents<'c> {
+pub(crate) enum Contents<'c> {
   Owned(Vec<u8>),
   Borrowed(&'c [u8]),
 }

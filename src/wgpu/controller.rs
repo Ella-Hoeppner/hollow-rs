@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
 use bytemuck::{NoUninit, Zeroable};
-use wgpu::{
-  ShaderModule, ShaderModuleDescriptor, VertexAttribute, VertexBufferLayout,
-};
+use wgpu::{ShaderModule, ShaderModuleDescriptor};
 use winit::window::Window;
 
 use super::{
@@ -100,11 +98,17 @@ impl<'window> WGPUController<'window> {
   pub fn buffer<T: NoUninit>(&self, contents: T) -> Buffer<T> {
     BufferBuilder::new(self, &[contents]).build()
   }
-  pub fn build_array_buffer<T: NoUninit>(
+  pub fn build_array_buffer_owned<T: NoUninit>(
     &self,
     contents: Vec<T>,
   ) -> ArrayBufferBuilder<T> {
     ArrayBufferBuilder::from_owned_contents(self, contents)
+  }
+  pub fn build_array_buffer<'a, T: NoUninit>(
+    &'a self,
+    contents: &'a [T],
+  ) -> ArrayBufferBuilder<T> {
+    ArrayBufferBuilder::from_contents(self, contents)
   }
   pub fn array_buffer<T: NoUninit>(&self, contents: &[T]) -> ArrayBuffer<T> {
     ArrayBufferBuilder::from_contents(self, contents).build()
@@ -144,28 +148,6 @@ impl<'window> WGPUController<'window> {
     self
       .queue
       .write_buffer(buffer, 0, bytemuck::cast_slice(data));
-    self
-  }
-  pub fn write_vector_buffer_unchecked<T: NoUninit>(
-    &self,
-    buffer: &VectorBuffer<T>,
-    data: &[T],
-  ) -> &Self {
-    self
-      .queue
-      .write_buffer(buffer, 0, bytemuck::cast_slice(data));
-    self
-  }
-  pub fn write_vector_buffer<T: NoUninit>(
-    &self,
-    buffer: &mut VectorBuffer<T>,
-    data: &[T],
-  ) -> &Self {
-    if data.len() > buffer.len() {
-      buffer.expand_with(self, data);
-    } else {
-      self.write_vector_buffer_unchecked(buffer, data);
-    }
     self
   }
   pub fn build_render_pipeline(&self) -> RenderPipelineBuilder {
