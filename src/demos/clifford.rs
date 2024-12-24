@@ -1,6 +1,6 @@
 use crate::{
   include_prefixed_wgsl,
-  sketch::Sketch,
+  sketch::{Sketch, SketchData},
   wgpu::{
     bind::BindGroupWithLayout,
     buffer::{ArrayBuffer, Buffer},
@@ -93,16 +93,14 @@ impl Sketch for CliffordSketch {
     &mut self,
     wgpu: &WGPUController,
     surface_view: TextureView,
-    dimensions: [usize; 2],
-    _t: f32,
-    _delta_t: f32,
+    data: SketchData,
   ) {
-    let dim_min = dimensions[0].min(dimensions[1]) as f32;
+    let dim_min = data.dimensions[0].min(data.dimensions[1]) as f32;
     wgpu.write_buffer(
       &self.scale_buffer,
       [
-        dim_min / dimensions[0] as f32,
-        dim_min / dimensions[1] as f32,
+        dim_min / data.dimensions[0] as f32,
+        dim_min / data.dimensions[1] as f32,
       ],
     );
     wgpu.with_encoder(|encoder| {

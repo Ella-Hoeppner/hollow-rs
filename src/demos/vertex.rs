@@ -1,7 +1,7 @@
 use std::f32::consts::TAU;
 
 use crate::{
-  sketch::Sketch,
+  sketch::{Sketch, SketchData},
   wgpu::{
     bind::BindGroupWithLayout,
     buffer::{ArrayBuffer, Buffer},
@@ -72,15 +72,13 @@ impl Sketch for VertexSketch {
     &mut self,
     wgpu: &WGPUController,
     surface_view: TextureView,
-    dimensions: [usize; 2],
-    t: f32,
-    _delta_t: f32,
+    data: SketchData,
   ) {
-    let dim_min = dimensions[0].min(dimensions[1]) as f32;
+    let dim_min = data.dimensions[0].min(data.dimensions[1]) as f32;
     for i in 0..CIRCLES {
       let angle = TAU * (i as f32) / CIRCLES as f32;
-      let position_phase = angle + t * 0.9;
-      let radius_phase = angle * 3. + t * 6.2;
+      let position_phase = angle + data.t * 0.9;
+      let radius_phase = angle * 3. + data.t * 6.2;
       self.circles[i] = Circle {
         x: position_phase.cos() * 0.75,
         y: position_phase.sin() * 0.75,
@@ -91,8 +89,8 @@ impl Sketch for VertexSketch {
       .write_buffer(
         &self.scale_buffer,
         [
-          dim_min / dimensions[0] as f32,
-          dim_min / dimensions[1] as f32,
+          dim_min / data.dimensions[0] as f32,
+          dim_min / data.dimensions[1] as f32,
         ],
       )
       .write_array_buffer(&self.circle_instance_buffer, &self.circles);

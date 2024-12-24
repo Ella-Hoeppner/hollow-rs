@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use bytemuck::{NoUninit, Zeroable};
-use wgpu::{ShaderModule, ShaderModuleDescriptor};
+use wgpu::{Features, ShaderModule, ShaderModuleDescriptor};
 use winit::window::Window;
 
 use super::{
@@ -12,6 +12,7 @@ use super::{
   },
   encoder::CommandEncoder,
   pipeline::{ComputePipelineBuilder, RenderPipelineBuilder},
+  texture::TextureBuilder,
 };
 
 pub struct WGPUController<'window> {
@@ -22,7 +23,10 @@ pub struct WGPUController<'window> {
 }
 
 impl<'window> WGPUController<'window> {
-  pub async fn new(window: Arc<Window>) -> Self {
+  pub async fn new_with_features(
+    window: Arc<Window>,
+    features: Features,
+  ) -> Self {
     let size = window.inner_size();
     let wgpu_instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
       backends: wgpu::Backends::all(),
@@ -40,7 +44,7 @@ impl<'window> WGPUController<'window> {
     let (device, queue) = adapter
       .request_device(
         &wgpu::DeviceDescriptor {
-          required_features: wgpu::Features::empty(),
+          required_features: features,
           required_limits: wgpu::Limits::default(),
           label: None,
         },
@@ -74,6 +78,9 @@ impl<'window> WGPUController<'window> {
       config,
     }
   }
+  pub async fn new(window: Arc<Window>) -> Self {
+    Self::new_with_features(window, Features::empty()).await
+  }
   pub fn create_encoder(&self) -> CommandEncoder {
     CommandEncoder::new(
       self
@@ -88,6 +95,13 @@ impl<'window> WGPUController<'window> {
   }
   pub fn shader(&self, source: ShaderModuleDescriptor<'_>) -> ShaderModule {
     self.device.create_shader_module(source)
+  }
+  pub fn build_texture_2d<'w>(
+    &'w self,
+    width: u32,
+    height: u32,
+  ) -> TextureBuilder {
+    TextureBuilder::new_2d(self, width, height)
   }
   pub fn build_buffer<'a, 'w, T: NoUninit>(
     &'w self,
@@ -112,6 +126,16 @@ impl<'window> WGPUController<'window> {
   }
   pub fn array_buffer<T: NoUninit>(&self, contents: &[T]) -> ArrayBuffer<T> {
     ArrayBufferBuilder::from_contents(self, contents).build()
+  }
+  pub fn zeroed_array_buffer<T: NoUninit + Zeroable>(
+    &self,
+    length: usize,
+  ) -> ArrayBuffer<T> {
+    self.array_buffer(
+      &std::iter::repeat(T::zeroed())
+        .take(length)
+        .collect::<Vec<T>>(),
+    )
   }
   pub fn build_empty_array_buffer<T: NoUninit + Zeroable>(
     &self,

@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut, Range};
 
 use wgpu::{
-  BufferSlice, QuerySet, RenderPassColorAttachment,
+  BufferSlice, Color, QuerySet, RenderPassColorAttachment,
   RenderPassDepthStencilAttachment, RenderPassTimestampWrites, TextureView,
 };
 
@@ -52,6 +52,20 @@ impl<'e, 's, 'query: 'e, 'tex: 'e, 'desc>
       resolve_target: None,
       ops: wgpu::Operations {
         load: wgpu::LoadOp::Load,
+        store: wgpu::StoreOp::Store,
+      },
+    }))
+  }
+  pub fn add_clearing_color_attachment<'v: 'e + 'tex>(
+    self,
+    view: &'v TextureView,
+    color: Color,
+  ) -> Self {
+    self.add_color_attachment(Some(wgpu::RenderPassColorAttachment {
+      view,
+      resolve_target: None,
+      ops: wgpu::Operations {
+        load: wgpu::LoadOp::Clear(color),
         store: wgpu::StoreOp::Store,
       },
     }))

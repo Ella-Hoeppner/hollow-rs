@@ -2,7 +2,8 @@ use std::{num::NonZero, ops::Deref};
 
 use wgpu::{
   BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor,
-  BindGroupLayoutEntry, BindingType, ShaderStages,
+  BindGroupLayoutEntry, BindingResource, BindingType, ShaderStages,
+  TextureSampleType, TextureView, TextureViewDimension,
 };
 
 use super::controller::WGPUController;
@@ -162,6 +163,16 @@ impl<'l, 's, 'a, 'w, 'window> BindGroupBuilder<'l, 's, 'a, 'w, 'window> {
     });
     self
   }
+  pub fn with_texture_entry<'b: 'a>(
+    mut self,
+    texture_view: &'b TextureView,
+  ) -> Self {
+    self.entries.push(BindGroupEntry {
+      binding: self.entries.len() as u32,
+      resource: BindingResource::TextureView(texture_view),
+    });
+    self
+  }
   pub fn with_raw_entry(mut self, entry: BindGroupEntry<'a>) -> Self {
     self.entries.push(entry);
     self
@@ -252,6 +263,22 @@ impl<'s, 'l, 'a, 'w, 'window>
   ) -> Self {
     self.layout_builder = self.layout_builder.with_raw_entry(layout_entry);
     self.group_builder = self.group_builder.with_raw_entry(entry);
+    self
+  }
+  pub fn with_texture_entry<'b: 'a>(
+    mut self,
+    texture_view: &'b TextureView,
+  ) -> Self {
+    self.layout_builder = self.layout_builder.with_entry(
+      BindGroupLayoutEntryBuilder::new()
+        .with_visibility(ShaderStages::FRAGMENT)
+        .with_ty(BindingType::Texture {
+          sample_type: TextureSampleType::Float { filterable: false },
+          view_dimension: TextureViewDimension::D2,
+          multisampled: false,
+        }),
+    );
+    self.group_builder = self.group_builder.with_texture_entry(texture_view);
     self
   }
   pub fn with_uniform_buffer_entry<'b: 'a, B: Into<&'b wgpu::Buffer>>(

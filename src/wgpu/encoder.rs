@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use wgpu::TextureView;
+use wgpu::{Color, TextureView};
 
 use super::{
   compute_pass::ComputePass,
@@ -25,6 +25,16 @@ impl CommandEncoder {
     self
       .build_render_pass()
       .add_simple_color_attachment(view)
+      .build()
+  }
+  pub fn clearing_render_pass<'a>(
+    &'a mut self,
+    view: &'a TextureView,
+    color: Color,
+  ) -> RenderPass<'a> {
+    self
+      .build_render_pass()
+      .add_clearing_color_attachment(view, color)
       .build()
   }
   pub fn compute_pass(&mut self) -> ComputePass {

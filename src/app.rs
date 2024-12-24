@@ -1,22 +1,26 @@
 use std::{sync::Arc, time::Instant};
 
-use crate::{sketch::Sketch, wgpu::controller::WGPUController};
+use crate::{
+  sketch::{Sketch, SketchData},
+  wgpu::controller::WGPUController,
+};
+use wgpu::Features;
 use winit::{
   event::{Event, WindowEvent},
   event_loop::EventLoop,
   window::{Window, WindowBuilder},
 };
 
-struct App<'w> {
+struct SketchApp<'w> {
   window: Arc<Window>,
   start_instant: Instant,
   last_frame_timestamp: f32,
   wgpu: WGPUController<'w>,
-  surface_pixel_dimensions: [usize; 2],
+  surface_pixel_dimensions: [u32; 2],
 }
 
-impl<'w> App<'w> {
-  async fn new(window: Window) -> Self {
+impl<'w> SketchApp<'w> {
+  async fn new(window: Window, features: Features) -> Self {
     let window_arc = Arc::new(window);
     let wgpu = WGPUController::new(window_arc.clone()).await;
     Self {
@@ -44,7 +48,7 @@ impl<'w> App<'w> {
         .surface
         .configure(&self.wgpu.device, &self.wgpu.config);
     }
-    self.surface_pixel_dimensions = [width as usize, height as usize];
+    self.surface_pixel_dimensions = [width, height];
   }
   fn update(&mut self) {
     let t = self.time();
@@ -58,8 +62,10 @@ pub async fn run_sketch<S: Sketch>() {
     .with_title("cast")
     .build(&event_loop)
     .unwrap();
-  let mut app = App::new(window).await;
+  let mut app = SketchApp::new(window, S::required_features()).await;
   let mut sketch = S::init(&app.wgpu);
+  let mut mouse_pos = Some((0., 0.));
+  let mut frame_index = 0;
   event_loop
     .run(move |event, event_loop_window_target| match event {
       Event::WindowEvent {
@@ -81,17 +87,45 @@ pub async fn run_sketch<S: Sketch>() {
               let surface_view = surface_texture
                 .texture
                 .create_view(&wgpu::TextureViewDescriptor::default());
+              let min_dim = app.surface_pixel_dimensions[0]
+                .min(app.surface_pixel_dimensions[1])
+                as f32;
               sketch.update(
                 &app.wgpu,
                 surface_view,
-                app.surface_pixel_dimensions,
-                app.time(),
-                app.delta_time(),
+                SketchData {
+                  dimensions: app.surface_pixel_dimensions,
+                  t: app.time(),
+                  delta_t: app.delta_time(),
+                  mouse_pos: mouse_pos.map(|mouse_pos| {
+                    (
+                      (app.surface_pixel_dimensions[0] as f32 / min_dim)
+                        * ((2.
+                          * (mouse_pos.0
+                            / app.surface_pixel_dimensions[0] as f32))
+                          - 1.),
+                      (app.surface_pixel_dimensions[1] as f32 / min_dim)
+                        * ((2.
+                          * (mouse_pos.1
+                            / app.surface_pixel_dimensions[1] as f32))
+                          - 1.),
+                    )
+                  }),
+                  frame_index,
+                },
               );
               surface_texture.present();
+              frame_index += 1;
             }
           }
         }
+        WindowEvent::CursorMoved { position, .. } => {
+          mouse_pos = Some((position.x as f32, position.y as f32));
+        }
+        WindowEvent::CursorLeft { .. } => {
+          mouse_pos = None;
+        }
+
         _ => {}
       },
       Event::AboutToWait => {

@@ -1,9 +1,10 @@
 use std::num::NonZero;
 
 use wgpu::{
-  BindGroupLayout, ColorTargetState, ComputePipeline, DepthStencilState,
-  FragmentState, MultisampleState, PrimitiveState, RenderPipeline,
-  RenderPipelineDescriptor, ShaderModule, VertexBufferLayout, VertexState,
+  BindGroupLayout, BlendState, ColorTargetState, ComputePipeline,
+  DepthStencilState, FragmentState, MultisampleState, PrimitiveState,
+  RenderPipeline, RenderPipelineDescriptor, ShaderModule, TextureFormat,
+  VertexBufferLayout, VertexState,
 };
 
 use super::controller::WGPUController;
@@ -18,7 +19,9 @@ pub struct RenderPipelineBuilder<'w, 'window, 's, 'v, 'b, 'shader> {
   primitive: Option<PrimitiveState>,
   depth_stencil: Option<DepthStencilState>,
   multisample: Option<MultisampleState>,
+  blend_state: Option<BlendState>,
   multiview: Option<NonZero<u32>>,
+  texture_format: Option<TextureFormat>,
 }
 
 impl<'w, 'window, 's, 'v, 'b, 'shader>
@@ -36,6 +39,8 @@ impl<'w, 'window, 's, 'v, 'b, 'shader>
       depth_stencil: None,
       multisample: None,
       multiview: None,
+      blend_state: None,
+      texture_format: None,
     }
   }
   pub fn with_label(mut self, label: &'s str) -> Self {
@@ -73,6 +78,14 @@ impl<'w, 'window, 's, 'v, 'b, 'shader>
     self.multiview = Some(multiview);
     self
   }
+  pub fn with_blend_state(mut self, blend_state: BlendState) -> Self {
+    self.blend_state = Some(blend_state);
+    self
+  }
+  pub fn with_texture_format(mut self, texture_format: TextureFormat) -> Self {
+    self.texture_format = Some(texture_format);
+    self
+  }
   pub fn add_vertex_buffer_layout<V: Into<VertexBufferLayout<'v>>>(
     mut self,
     layout: V,
@@ -87,8 +100,8 @@ impl<'w, 'window, 's, 'v, 'b, 'shader>
     fragment_entry_point: Option<&'fs str>,
   ) -> RenderPipeline {
     let fragment_targets = &[Some(ColorTargetState {
-      format: self.wgpu.config.format,
-      blend: Some(wgpu::BlendState::REPLACE),
+      format: self.texture_format.unwrap_or(self.wgpu.config.format),
+      blend: self.blend_state,
       write_mask: wgpu::ColorWrites::ALL,
     })];
     self
