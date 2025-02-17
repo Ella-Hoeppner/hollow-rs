@@ -1,4 +1,3 @@
-#![feature(generic_nonzero)]
 #[macro_use]
 
 pub mod app;

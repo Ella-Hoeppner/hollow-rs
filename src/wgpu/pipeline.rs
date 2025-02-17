@@ -96,8 +96,8 @@ impl<'w, 'window, 's, 'v, 'b, 'shader>
   pub fn build_with_shader_entry_points<'vs, 'fs>(
     self,
     shader: &ShaderModule,
-    vertex_entry_point: &'vs str,
-    fragment_entry_point: Option<&'fs str>,
+    vertex_entry_point: Option<&'vs str>,
+    fragment_entry_point: Option<Option<&'fs str>>,
   ) -> RenderPipeline {
     let fragment_targets = &[Some(ColorTargetState {
       format: self.texture_format.unwrap_or(self.wgpu.config.format),
@@ -120,11 +120,13 @@ impl<'w, 'window, 's, 'v, 'b, 'shader>
           module: &shader,
           entry_point: vertex_entry_point,
           buffers: &self.vertex_buffer_layouts,
+          compilation_options: Default::default(),
         },
         fragment: fragment_entry_point.map(|fragment| FragmentState {
           module: &shader,
           entry_point: fragment,
           targets: fragment_targets,
+          compilation_options: Default::default(),
         }),
         primitive: self.primitive.unwrap_or(wgpu::PrimitiveState {
           topology: wgpu::PrimitiveTopology::TriangleList,
@@ -142,10 +144,15 @@ impl<'w, 'window, 's, 'v, 'b, 'shader>
           alpha_to_coverage_enabled: false,
         }),
         multiview: self.multiview,
+        cache: None,
       })
   }
   pub fn build_with_shader(self, shader: &ShaderModule) -> RenderPipeline {
-    self.build_with_shader_entry_points(shader, "vertex", Some("fragment"))
+    self.build_with_shader_entry_points(
+      shader,
+      Some("vertex"),
+      Some(Some("fragment")),
+    )
   }
   pub fn build(self) -> RenderPipeline {
     self
@@ -181,6 +188,7 @@ impl<'w, 'window, 's, 'v, 'b, 'shader>
           alpha_to_coverage_enabled: false,
         }),
         multiview: self.multiview,
+        cache: None,
       })
   }
 }
@@ -210,7 +218,7 @@ impl<'w, 'window, 's, 'b> ComputePipelineBuilder<'w, 'window, 's, 'b> {
   pub fn build_with_shader_entry_point<'cs>(
     self,
     shader: &ShaderModule,
-    entry_point: &'cs str,
+    entry_point: Option<&'cs str>,
   ) -> ComputePipeline {
     self
       .wgpu
@@ -225,10 +233,12 @@ impl<'w, 'window, 's, 'b> ComputePipelineBuilder<'w, 'window, 's, 'b> {
           },
         )),
         module: shader,
-        entry_point,
+        entry_point: entry_point,
+        compilation_options: Default::default(),
+        cache: None,
       })
   }
   pub fn build_with_shader(self, shader: &ShaderModule) -> ComputePipeline {
-    self.build_with_shader_entry_point(shader, "compute")
+    self.build_with_shader_entry_point(shader, None)
   }
 }

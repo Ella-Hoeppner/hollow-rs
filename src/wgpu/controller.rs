@@ -28,7 +28,7 @@ impl<'window> WGPUController<'window> {
     features: Features,
   ) -> Self {
     let size = window.inner_size();
-    let wgpu_instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+    let wgpu_instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
       backends: wgpu::Backends::all(),
       ..Default::default()
     });
@@ -47,6 +47,7 @@ impl<'window> WGPUController<'window> {
           required_features: features,
           required_limits: wgpu::Limits::default(),
           label: None,
+          memory_hints: Default::default(),
         },
         None,
       )
@@ -100,13 +101,13 @@ impl<'window> WGPUController<'window> {
     &'w self,
     width: u32,
     height: u32,
-  ) -> TextureBuilder {
+  ) -> TextureBuilder<'w, 'w, 'w> {
     TextureBuilder::new_2d(self, width, height)
   }
   pub fn build_buffer<'a, 'w, T: NoUninit>(
     &'w self,
     contents: &'a [T],
-  ) -> BufferBuilder<'a, '_, 'w, 'window, T> {
+  ) -> BufferBuilder<'a, 'w, 'w, 'window, T> {
     BufferBuilder::new(self, contents)
   }
   pub fn buffer<T: NoUninit>(&self, contents: T) -> Buffer<T> {
@@ -121,7 +122,7 @@ impl<'window> WGPUController<'window> {
   pub fn build_array_buffer<'a, T: NoUninit>(
     &'a self,
     contents: &'a [T],
-  ) -> ArrayBufferBuilder<T> {
+  ) -> ArrayBufferBuilder<'a, 'a, 'a, 'a, T> {
     ArrayBufferBuilder::from_contents(self, contents)
   }
   pub fn array_buffer<T: NoUninit>(&self, contents: &[T]) -> ArrayBuffer<T> {

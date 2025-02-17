@@ -22,7 +22,8 @@ struct SketchApp<'w> {
 impl<'w> SketchApp<'w> {
   async fn new(window: Window, features: Features) -> Self {
     let window_arc = Arc::new(window);
-    let wgpu = WGPUController::new(window_arc.clone()).await;
+    let wgpu =
+      WGPUController::new_with_features(window_arc.clone(), features).await;
     Self {
       window: window_arc,
       start_instant: Instant::now(),

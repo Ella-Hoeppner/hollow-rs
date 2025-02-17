@@ -199,7 +199,7 @@ impl BindGroupLayout {
   pub fn build_group<'l, 'w, 'window>(
     &'l self,
     wgpu: &'w WGPUController<'window>,
-  ) -> BindGroupBuilder<'l, '_, '_, 'w, 'window> {
+  ) -> BindGroupBuilder<'l, 'l, 'l, 'w, 'window> {
     BindGroupBuilder::new(wgpu).with_layout(self)
   }
 }
