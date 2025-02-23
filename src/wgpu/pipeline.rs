@@ -2,14 +2,15 @@ use std::num::NonZero;
 
 use wgpu::{
   BindGroupLayout, BlendState, ColorTargetState, ComputePipeline,
-  DepthStencilState, FragmentState, MultisampleState, PrimitiveState,
-  RenderPipeline, RenderPipelineDescriptor, ShaderModule, TextureFormat,
-  VertexBufferLayout, VertexState,
+  DepthStencilState, FragmentState, MultisampleState,
+  PipelineCompilationOptions, PrimitiveState, RenderPipeline,
+  RenderPipelineDescriptor, ShaderModule, TextureFormat, VertexBufferLayout,
+  VertexState,
 };
 
 use super::controller::WGPUController;
 
-pub struct RenderPipelineBuilder<'w, 'window, 's, 'v, 'b, 'shader> {
+pub struct RenderPipelineBuilder<'w, 'window, 's, 'v, 'b, 'p, 'shader> {
   wgpu: &'w WGPUController<'window>,
   label: Option<&'s str>,
   bind_group_layouts: Vec<&'b BindGroupLayout>,
@@ -22,10 +23,12 @@ pub struct RenderPipelineBuilder<'w, 'window, 's, 'v, 'b, 'shader> {
   blend_state: Option<BlendState>,
   multiview: Option<NonZero<u32>>,
   texture_format: Option<TextureFormat>,
+  fragment_compilation_options: Option<PipelineCompilationOptions<'p>>,
+  vertex_compilation_options: Option<PipelineCompilationOptions<'p>>,
 }
 
-impl<'w, 'window, 's, 'v, 'b, 'shader>
-  RenderPipelineBuilder<'w, 'window, 's, 'v, 'b, 'shader>
+impl<'w, 'window, 's, 'v, 'b, 'p, 'shader>
+  RenderPipelineBuilder<'w, 'window, 's, 'v, 'b, 'p, 'shader>
 {
   pub fn new(wgpu: &'w WGPUController<'window>) -> Self {
     Self {
@@ -41,6 +44,8 @@ impl<'w, 'window, 's, 'v, 'b, 'shader>
       multiview: None,
       blend_state: None,
       texture_format: None,
+      fragment_compilation_options: None,
+      vertex_compilation_options: None,
     }
   }
   pub fn with_label(mut self, label: &'s str) -> Self {
@@ -93,6 +98,28 @@ impl<'w, 'window, 's, 'v, 'b, 'shader>
     self.vertex_buffer_layouts.push(layout.into());
     self
   }
+  pub fn with_fragment_compilation_options(
+    mut self,
+    options: PipelineCompilationOptions<'p>,
+  ) -> Self {
+    self.fragment_compilation_options = Some(options);
+    self
+  }
+  pub fn with_vertex_compilation_options(
+    mut self,
+    options: PipelineCompilationOptions<'p>,
+  ) -> Self {
+    self.vertex_compilation_options = Some(options);
+    self
+  }
+  pub fn with_compilation_options(
+    self,
+    options: PipelineCompilationOptions<'p>,
+  ) -> Self {
+    self
+      .with_fragment_compilation_options(options.clone())
+      .with_vertex_compilation_options(options)
+  }
   pub fn build_with_shader_entry_points<'vs, 'fs>(
     self,
     shader: &ShaderModule,
@@ -120,13 +147,17 @@ impl<'w, 'window, 's, 'v, 'b, 'shader>
           module: &shader,
           entry_point: vertex_entry_point,
           buffers: &self.vertex_buffer_layouts,
-          compilation_options: Default::default(),
+          compilation_options: self
+            .vertex_compilation_options
+            .unwrap_or_else(|| Default::default()),
         },
         fragment: fragment_entry_point.map(|fragment| FragmentState {
           module: &shader,
           entry_point: fragment,
           targets: fragment_targets,
-          compilation_options: Default::default(),
+          compilation_options: self
+            .fragment_compilation_options
+            .unwrap_or_else(|| Default::default()),
         }),
         primitive: self.primitive.unwrap_or(wgpu::PrimitiveState {
           topology: wgpu::PrimitiveTopology::TriangleList,
