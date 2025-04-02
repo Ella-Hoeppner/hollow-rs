@@ -1,6 +1,6 @@
 use crate::{
   include_prefixed_wgsl,
-  sketch::{Sketch, SketchData},
+  sketch::{FrameData, Sketch},
   wgpu::{
     bind::BindGroupWithLayout,
     buffer::{ArrayBuffer, Buffer},
@@ -93,7 +93,7 @@ impl Sketch for CliffordSketch {
     &mut self,
     wgpu: &WGPUController,
     surface_view: TextureView,
-    data: SketchData,
+    data: FrameData,
   ) {
     let dim_min = data.dimensions[0].min(data.dimensions[1]) as f32;
     wgpu.write_buffer(
@@ -103,6 +103,7 @@ impl Sketch for CliffordSketch {
         dim_min / data.dimensions[1] as f32,
       ],
     );
+    println!("{:?}", data.scroll_delta);
     wgpu.with_encoder(|encoder| {
       encoder
         .compute_pass()

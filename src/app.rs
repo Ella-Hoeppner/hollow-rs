@@ -1,13 +1,13 @@
 use std::{sync::Arc, time::Instant};
 
 use crate::{
-  sketch::{Sketch, SketchData},
+  sketch::{FrameData, Sketch},
   wgpu::controller::WGPUController,
 };
 use wgpu::Features;
 use winit::{
   application::ApplicationHandler,
-  event::WindowEvent,
+  event::{ElementState, MouseButton, WindowEvent},
   event_loop::{ActiveEventLoop, EventLoop},
   window::{Window, WindowId},
 };
@@ -15,12 +15,14 @@ use winit::{
 struct SketchApp<'w, S: Sketch> {
   sketch: S,
   mouse_pos: Option<(f32, f32)>,
+  mouse_down: bool,
   frame_index: usize,
   window: Arc<Window>,
   start_instant: Instant,
   last_frame_timestamp: f32,
   wgpu: WGPUController<'w>,
   surface_pixel_dimensions: [u32; 2],
+  scroll_delta: [f32; 2],
 }
 
 impl<'w, S: Sketch> SketchApp<'w, S> {
@@ -38,6 +40,8 @@ impl<'w, S: Sketch> SketchApp<'w, S> {
       sketch,
       mouse_pos: Some((0., 0.)),
       frame_index: 0,
+      scroll_delta: [0., 0.],
+      mouse_down: false,
     }
   }
   fn time(&self) -> f32 {
@@ -106,7 +110,7 @@ impl<S: Sketch> ApplicationHandler for SketchRunner<'_, S> {
             app.sketch.update(
               &app.wgpu,
               surface_view,
-              SketchData {
+              FrameData {
                 dimensions: app.surface_pixel_dimensions,
                 t: app.time(),
                 delta_t: app.delta_time(),
@@ -125,20 +129,43 @@ impl<S: Sketch> ApplicationHandler for SketchRunner<'_, S> {
                   )
                 }),
                 frame_index: app.frame_index,
+                scroll_delta: (app.scroll_delta[0], app.scroll_delta[1]),
+                mouse_down: app.mouse_down,
               },
             );
             surface_texture.present();
             app.frame_index += 1;
+            app.scroll_delta = [0., 0.];
           }
         }
       }
       WindowEvent::CursorMoved { position, .. } => {
         app.mouse_pos = Some((position.x as f32, position.y as f32));
       }
+      WindowEvent::MouseInput {
+        device_id,
+        state,
+        button: MouseButton::Left,
+      } => app.mouse_down = state == ElementState::Pressed,
       WindowEvent::CursorLeft { .. } => {
         app.mouse_pos = None;
       }
-
+      WindowEvent::MouseWheel {
+        device_id,
+        delta,
+        phase,
+      } => match delta {
+        winit::event::MouseScrollDelta::LineDelta(x, y) => {
+          app.scroll_delta[0] += x;
+          app.scroll_delta[1] += y;
+        }
+        winit::event::MouseScrollDelta::PixelDelta(
+          winit::dpi::PhysicalPosition { x, y },
+        ) => {
+          app.scroll_delta[0] += x as f32;
+          app.scroll_delta[1] += y as f32;
+        }
+      },
       _ => {}
     }
   }

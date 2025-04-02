@@ -1,5 +1,5 @@
 use crate::{
-  sketch::{Sketch, SketchData},
+  sketch::{FrameData, Sketch},
   wgpu::{
     bind::BindGroupWithLayout,
     buffer::{ArrayBuffer, Buffer},
@@ -51,7 +51,7 @@ impl Sketch for SimpleSketch {
     &mut self,
     wgpu: &WGPUController,
     surface_view: TextureView,
-    data: SketchData,
+    data: FrameData,
   ) {
     wgpu
       .write_buffer(&self.dimensions_buffer, data.dimensions)

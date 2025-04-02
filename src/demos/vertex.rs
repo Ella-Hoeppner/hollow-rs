@@ -1,7 +1,7 @@
 use std::f32::consts::TAU;
 
 use crate::{
-  sketch::{Sketch, SketchData},
+  sketch::{Sketch, FrameData},
   wgpu::{
     bind::BindGroupWithLayout,
     buffer::{ArrayBuffer, Buffer},
@@ -72,7 +72,7 @@ impl Sketch for VertexSketch {
     &mut self,
     wgpu: &WGPUController,
     surface_view: TextureView,
-    data: SketchData,
+    data: FrameData,
   ) {
     let dim_min = data.dimensions[0].min(data.dimensions[1]) as f32;
     for i in 0..CIRCLES {
