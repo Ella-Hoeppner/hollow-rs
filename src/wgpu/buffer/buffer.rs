@@ -10,6 +10,7 @@ use crate::wgpu::controller::WGPUController;
 
 use super::data::IntoVertexBufferData;
 
+#[derive(Debug, Clone)]
 pub struct Buffer<T: NoUninit> {
   _phantom: PhantomData<T>,
   buffer: wgpu::Buffer,

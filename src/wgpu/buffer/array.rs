@@ -10,7 +10,7 @@ use crate::wgpu::controller::WGPUController;
 
 use super::data::IntoVertexBufferData;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ArrayBuffer<T: NoUninit> {
   _phantom: PhantomData<T>,
   len: usize,
