@@ -115,18 +115,18 @@ impl<'p> RenderPass<'p> {
   pub fn new(pass: wgpu::RenderPass<'p>) -> Self {
     Self { pass }
   }
-  pub fn set_index_buffer_u16(
+  pub fn set_index_buffer_u16<'a>(
     &mut self,
-    data: impl IntoIndexBufferDataU16<'p>,
+    data: impl IntoIndexBufferDataU16<'a>,
   ) {
     self.pass.set_index_buffer(
       data.into_index_buffer_data_u16(),
       wgpu::IndexFormat::Uint16,
     )
   }
-  pub fn with_index_buffer_u16(
+  pub fn with_index_buffer_u16<'a>(
     mut self,
-    data: impl IntoIndexBufferDataU16<'p>,
+    data: impl IntoIndexBufferDataU16<'a>,
   ) -> Self {
     self.set_index_buffer_u16(data);
     self
@@ -154,7 +154,7 @@ impl<'p> RenderPass<'p> {
   pub fn with_offset_bind_group(
     mut self,
     index: u32,
-    bind_group: &'p wgpu::BindGroup,
+    bind_group: &wgpu::BindGroup,
     offsets: &[wgpu::DynamicOffset],
   ) -> Self {
     self.set_bind_group(index, bind_group, offsets);
@@ -163,7 +163,7 @@ impl<'p> RenderPass<'p> {
   pub fn with_bind_group(
     self,
     index: u32,
-    bind_group: &'p wgpu::BindGroup,
+    bind_group: &wgpu::BindGroup,
   ) -> Self {
     self.with_offset_bind_group(index, bind_group, &[])
   }
@@ -178,17 +178,17 @@ impl<'p> RenderPass<'p> {
         pass.with_bind_group(i as u32, group)
       })
   }
-  pub fn with_vertex_buffer<'s: 'p>(
+  pub fn with_vertex_buffer<'a>(
     mut self,
     slot: u32,
-    buffer_slice: impl IntoVertexBufferData<'s>,
+    buffer_slice: impl IntoVertexBufferData<'a>,
   ) -> Self {
     self.set_vertex_buffer(slot, buffer_slice.into_vertex_buffer_data());
     self
   }
   pub fn with_pipeline<'a: 'p>(
     mut self,
-    pipeline: &'a wgpu::RenderPipeline,
+    pipeline: &wgpu::RenderPipeline,
   ) -> Self {
     self.set_pipeline(pipeline);
     self

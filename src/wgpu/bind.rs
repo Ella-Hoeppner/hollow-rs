@@ -189,6 +189,7 @@ impl<'l, 's, 'a, 'w, 'window> BindGroupBuilder<'l, 's, 'a, 'w, 'window> {
   }
 }
 
+#[derive(Debug)]
 pub struct BindGroupLayout {
   pub layout: wgpu::BindGroupLayout,
 }
@@ -211,6 +212,7 @@ impl Deref for BindGroupLayout {
   }
 }
 
+#[derive(Debug)]
 pub struct BindGroupWithLayout {
   pub layout: BindGroupLayout,
   pub group: BindGroup,
