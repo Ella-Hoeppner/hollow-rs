@@ -175,7 +175,7 @@ impl<'window> WGPUController<'window> {
   pub fn write_array_buffer_at<T: NoUninit>(
     &self,
     buffer: &ArrayBuffer<T>,
-    index: usize,
+    index: u64,
     data: &[T],
   ) -> &Self {
     self
