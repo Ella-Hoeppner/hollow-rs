@@ -170,9 +170,17 @@ impl<'window> WGPUController<'window> {
     buffer: &ArrayBuffer<T>,
     data: &[T],
   ) -> &Self {
+    self.write_array_buffer_at(buffer, 0, data)
+  }
+  pub fn write_array_buffer_at<T: NoUninit>(
+    &self,
+    buffer: &ArrayBuffer<T>,
+    index: usize,
+    data: &[T],
+  ) -> &Self {
     self
       .queue
-      .write_buffer(buffer, 0, bytemuck::cast_slice(data));
+      .write_buffer(buffer, index, bytemuck::cast_slice(data));
     self
   }
   pub fn build_render_pipeline(&self) -> RenderPipelineBuilder {
