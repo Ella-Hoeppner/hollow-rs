@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use instant::Instant;
+use web_time::Instant;
 
 use crate::{
   sketch::{FrameData, Sketch},
