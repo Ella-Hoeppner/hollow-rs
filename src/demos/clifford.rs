@@ -103,7 +103,6 @@ impl Sketch for CliffordSketch {
         dim_min / data.dimensions[1] as f32,
       ],
     );
-    println!("{:?}", data.scroll_delta);
     wgpu.with_encoder(|encoder| {
       encoder
         .compute_pass()
