@@ -1,4 +1,6 @@
-use std::{sync::Arc, time::Instant};
+use std::sync::Arc;
+
+use instant::Instant;
 
 use crate::{
   sketch::{FrameData, Sketch},
