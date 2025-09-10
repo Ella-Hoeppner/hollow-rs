@@ -1,5 +1,6 @@
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
+use take_mut::take;
 use web_time::Instant;
 
 use crate::{
@@ -9,8 +10,9 @@ use crate::{
 use wgpu::Features;
 use winit::{
   application::ApplicationHandler,
-  event::{ElementState, MouseButton, WindowEvent},
+  event::{ElementState, KeyEvent, MouseButton, WindowEvent},
   event_loop::{ActiveEventLoop, EventLoop},
+  keyboard::{Key, SmolStr},
   window::{Window, WindowId},
 };
 
@@ -25,14 +27,15 @@ struct SketchApp<'w, S: Sketch> {
   wgpu: WGPUController<'w>,
   surface_pixel_dimensions: [u32; 2],
   scroll_delta: [f32; 2],
+  down_keys: HashSet<SmolStr>,
 }
 
 impl<'w, S: Sketch> SketchApp<'w, S> {
-  async fn new(window: Window, features: Features) -> Self {
+  async fn new(mut sketch: S, window: Window, features: Features) -> Self {
     let window_arc = Arc::new(window);
     let wgpu =
       WGPUController::new_with_features(window_arc.clone(), features).await;
-    let sketch = S::init(&wgpu);
+    sketch.init(&wgpu);
     Self {
       window: window_arc,
       start_instant: Instant::now(),
@@ -44,6 +47,7 @@ impl<'w, S: Sketch> SketchApp<'w, S> {
       frame_index: 0,
       scroll_delta: [0., 0.],
       mouse_down: false,
+      down_keys: HashSet::new(),
     }
   }
   fn time(&self) -> f32 {
@@ -71,18 +75,27 @@ impl<'w, S: Sketch> SketchApp<'w, S> {
   }
 }
 
-pub struct SketchRunner<'w, S: Sketch> {
-  app: Option<SketchApp<'w, S>>,
+enum SketchRunner<'w, S: Sketch> {
+  Initialized(SketchApp<'w, S>),
+  Uninitialized(S),
 }
 
 impl<S: Sketch> ApplicationHandler for SketchRunner<'_, S> {
   fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-    let window = event_loop
-      .create_window(Window::default_attributes().with_title("hollow"))
-      .unwrap();
-    let app =
-      pollster::block_on(SketchApp::new(window, S::required_features()));
-    self.app = Some(app)
+    take(self, |runner| {
+      let window = event_loop
+        .create_window(Window::default_attributes().with_title("hollow"))
+        .unwrap();
+      if let SketchRunner::Uninitialized(sketch) = runner {
+        SketchRunner::Initialized(pollster::block_on(SketchApp::new(
+          sketch,
+          window,
+          S::required_features(),
+        )))
+      } else {
+        runner
+      }
+    })
   }
 
   fn window_event(
@@ -91,92 +104,127 @@ impl<S: Sketch> ApplicationHandler for SketchRunner<'_, S> {
     _window_id: WindowId,
     event: WindowEvent,
   ) {
-    let app = self.app.as_mut().unwrap();
-    match event {
-      WindowEvent::CloseRequested => event_loop.exit(),
-      WindowEvent::Resized(physical_size) => {
-        app.resize(physical_size);
-      }
-      WindowEvent::RedrawRequested => {
-        app.update();
-        match app.wgpu.surface.get_current_texture() {
-          Err(wgpu::SurfaceError::Lost) => app.resize(app.window.inner_size()),
-          Err(err) => panic!("{err:?}"),
-          Ok(surface_texture) => {
-            let surface_view = surface_texture
-              .texture
-              .create_view(&wgpu::TextureViewDescriptor::default());
-            let min_dim = app.surface_pixel_dimensions[0]
-              .min(app.surface_pixel_dimensions[1])
-              as f32;
-            app.sketch.update(
-              &app.wgpu,
-              surface_view,
-              FrameData {
-                dimensions: app.surface_pixel_dimensions,
-                t: app.time(),
-                delta_t: app.delta_time(),
-                mouse_pos: app.mouse_pos.map(|mouse_pos| {
-                  (
-                    (app.surface_pixel_dimensions[0] as f32 / min_dim)
-                      * ((2.
-                        * (mouse_pos.0
-                          / app.surface_pixel_dimensions[0] as f32))
-                        - 1.),
-                    (app.surface_pixel_dimensions[1] as f32 / min_dim)
-                      * ((2.
-                        * (mouse_pos.1
-                          / app.surface_pixel_dimensions[1] as f32))
-                        - 1.),
-                  )
-                }),
-                frame_index: app.frame_index,
-                scroll_delta: (app.scroll_delta[0], app.scroll_delta[1]),
-                mouse_down: app.mouse_down,
-              },
-            );
-            surface_texture.present();
-            app.frame_index += 1;
-            app.scroll_delta = [0., 0.];
+    if let SketchRunner::Initialized(app) = self {
+      let frame = |app: &mut SketchApp<'_, S>| match app
+        .wgpu
+        .surface
+        .get_current_texture()
+      {
+        Err(err) => Err(err),
+        Ok(surface_texture) => {
+          let surface_view = surface_texture
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+          let min_dim = app.surface_pixel_dimensions[0]
+            .min(app.surface_pixel_dimensions[1])
+            as f32;
+          Ok((
+            surface_texture,
+            surface_view,
+            FrameData {
+              dimensions: app.surface_pixel_dimensions,
+              t: app.time(),
+              delta_t: app.delta_time(),
+              mouse_pos: app.mouse_pos.map(|mouse_pos| {
+                (
+                  (app.surface_pixel_dimensions[0] as f32 / min_dim)
+                    * ((2.
+                      * (mouse_pos.0
+                        / app.surface_pixel_dimensions[0] as f32))
+                      - 1.),
+                  (app.surface_pixel_dimensions[1] as f32 / min_dim)
+                    * ((2.
+                      * (mouse_pos.1
+                        / app.surface_pixel_dimensions[1] as f32))
+                      - 1.),
+                )
+              }),
+              frame_index: app.frame_index,
+              scroll_delta: (app.scroll_delta[0], app.scroll_delta[1]),
+              mouse_down: app.mouse_down,
+              down_keys: app.down_keys.clone(),
+            },
+          ))
+        }
+      };
+      match event {
+        WindowEvent::CloseRequested => event_loop.exit(),
+        WindowEvent::Resized(physical_size) => {
+          app.resize(physical_size);
+        }
+        WindowEvent::RedrawRequested => {
+          app.update();
+          match frame(app) {
+            Err(wgpu::SurfaceError::Lost) => {
+              app.resize(app.window.inner_size())
+            }
+            Err(err) => panic!("{err:?}"),
+            Ok((surface_texture, surface_view, frame_data)) => {
+              app.sketch.update(&app.wgpu, surface_view, frame_data);
+              surface_texture.present();
+              app.frame_index += 1;
+              app.scroll_delta = [0., 0.];
+            }
           }
         }
-      }
-      WindowEvent::CursorMoved { position, .. } => {
-        app.mouse_pos = Some((position.x as f32, position.y as f32));
-      }
-      WindowEvent::MouseInput {
-        device_id,
-        state,
-        button: MouseButton::Left,
-      } => app.mouse_down = state == ElementState::Pressed,
-      WindowEvent::CursorLeft { .. } => {
-        app.mouse_pos = None;
-      }
-      WindowEvent::MouseWheel {
-        device_id,
-        delta,
-        phase,
-      } => match delta {
-        winit::event::MouseScrollDelta::LineDelta(x, y) => {
-          app.scroll_delta[0] += x;
-          app.scroll_delta[1] += y;
+        WindowEvent::CursorMoved { position, .. } => {
+          app.mouse_pos = Some((position.x as f32, position.y as f32));
         }
-        winit::event::MouseScrollDelta::PixelDelta(
-          winit::dpi::PhysicalPosition { x, y },
-        ) => {
-          app.scroll_delta[0] += x as f32;
-          app.scroll_delta[1] += y as f32;
+        WindowEvent::MouseInput {
+          state,
+          button: MouseButton::Left,
+          ..
+        } => app.mouse_down = state == ElementState::Pressed,
+        WindowEvent::CursorLeft { .. } => {
+          app.mouse_pos = None;
         }
-      },
-      _ => {}
+        WindowEvent::MouseWheel { delta, .. } => match delta {
+          winit::event::MouseScrollDelta::LineDelta(x, y) => {
+            app.scroll_delta[0] += x;
+            app.scroll_delta[1] += y;
+          }
+          winit::event::MouseScrollDelta::PixelDelta(
+            winit::dpi::PhysicalPosition { x, y },
+          ) => {
+            app.scroll_delta[0] += x as f32;
+            app.scroll_delta[1] += y as f32;
+          }
+        },
+        WindowEvent::KeyboardInput {
+          event:
+            KeyEvent {
+              state: pressed_or_released,
+              logical_key,
+              ..
+            },
+          ..
+        } => {
+          if let Key::Character(char) = logical_key {
+            match pressed_or_released {
+              ElementState::Pressed => {
+                app.down_keys.insert(char.clone());
+                if let Ok((_, _, frame_data)) = frame(app) {
+                  app.sketch.key_down(&char, frame_data);
+                }
+              }
+              ElementState::Released => {
+                app.down_keys.remove(&char);
+              }
+            }
+          }
+        }
+        _ => {}
+      }
     }
   }
   fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-    self.app.as_mut().unwrap().window.request_redraw();
+    if let SketchRunner::Initialized(app) = self {
+      app.window.request_redraw();
+    }
   }
 }
 
-pub async fn run_sketch<S: Sketch>() {
-  let mut runner: SketchRunner<'_, S> = SketchRunner { app: None };
+pub async fn run_sketch<S: Sketch>(sketch: S) {
+  let mut runner: SketchRunner<'_, S> = SketchRunner::Uninitialized(sketch);
   EventLoop::new().unwrap().run_app(&mut runner).unwrap();
 }

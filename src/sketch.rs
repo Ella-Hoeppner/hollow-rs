@@ -1,4 +1,7 @@
+use std::collections::HashSet;
+
 use wgpu::{Features, TextureView};
+use winit::keyboard::SmolStr;
 
 use crate::{app::run_sketch, wgpu::controller::WGPUController};
 
@@ -10,10 +13,17 @@ pub struct FrameData {
   pub mouse_pos: Option<(f32, f32)>,
   pub mouse_down: bool,
   pub scroll_delta: (f32, f32),
+  pub down_keys: HashSet<SmolStr>,
+}
+
+impl FrameData {
+  pub fn is_key_down(&self, key: &str) -> bool {
+    self.down_keys.contains(key)
+  }
 }
 
 pub trait Sketch: Sized {
-  fn init(wgpu: &WGPUController) -> Self;
+  fn init(&mut self, wgpu: &WGPUController);
   fn update(
     &mut self,
     wgpu: &WGPUController,
@@ -23,7 +33,8 @@ pub trait Sketch: Sized {
   fn required_features() -> Features {
     Features::empty()
   }
-  fn run() {
-    pollster::block_on(run_sketch::<Self>());
+  fn run(self) {
+    pollster::block_on(run_sketch(self));
   }
+  fn key_down(&mut self, _key: &str, _data: FrameData) {}
 }

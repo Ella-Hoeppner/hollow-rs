@@ -19,7 +19,7 @@ const D: f32 = 0.7;
 const POINT_GROUP_MULTIPLE: usize = 1000;
 const POINTS: usize = 256 * POINT_GROUP_MULTIPLE;
 
-pub struct CliffordSketch {
+pub struct CliffordSketchInner {
   uniform_bind_group: BindGroupWithLayout,
   render_points_bind_group: BindGroupWithLayout,
   compute_bind_group: BindGroupWithLayout,
@@ -28,9 +28,15 @@ pub struct CliffordSketch {
   render_pipeline: RenderPipeline,
   compute_pipeline: ComputePipeline,
 }
+pub struct CliffordSketch(Option<CliffordSketchInner>);
+impl CliffordSketch {
+  pub fn new() -> Self {
+    Self(None)
+  }
+}
 
 impl Sketch for CliffordSketch {
-  fn init(wgpu: &WGPUController) -> Self {
+  fn init(&mut self, wgpu: &WGPUController) {
     let scale_buffer = wgpu.buffer([0., 0.]);
     let mut rng = rand::thread_rng();
     let point_buffer = wgpu.array_buffer(
@@ -78,7 +84,7 @@ impl Sketch for CliffordSketch {
         "clifford_compute.wgsl",
         wgsl_constants_string!(A: f32, B: f32, C: f32, D: f32)
       )));
-    Self {
+    self.0 = Some(CliffordSketchInner {
       scale_buffer,
       uniform_bind_group,
       render_points_bind_group,
@@ -86,7 +92,7 @@ impl Sketch for CliffordSketch {
       corner_vertex_buffer,
       render_pipeline,
       compute_pipeline,
-    }
+    });
   }
 
   fn update(
@@ -95,29 +101,31 @@ impl Sketch for CliffordSketch {
     surface_view: TextureView,
     data: FrameData,
   ) {
-    let dim_min = data.dimensions[0].min(data.dimensions[1]) as f32;
-    wgpu.write_buffer(
-      &self.scale_buffer,
-      [
-        dim_min / data.dimensions[0] as f32,
-        dim_min / data.dimensions[1] as f32,
-      ],
-    );
-    wgpu.with_encoder(|encoder| {
-      encoder
-        .compute_pass()
-        .with_pipeline(&self.compute_pipeline)
-        .with_bind_groups([&self.compute_bind_group])
-        .dispatch(POINT_GROUP_MULTIPLE as u32, 1, 1);
-      encoder
-        .simple_render_pass(&surface_view)
-        .with_bind_groups([
-          &self.uniform_bind_group,
-          &self.render_points_bind_group,
-        ])
-        .with_vertex_buffer(0, &self.corner_vertex_buffer)
-        .with_pipeline(&self.render_pipeline)
-        .draw(0..6, 0..POINTS as u32);
-    })
+    if let CliffordSketch(Some(inner)) = self {
+      let dim_min = data.dimensions[0].min(data.dimensions[1]) as f32;
+      wgpu.write_buffer(
+        &inner.scale_buffer,
+        [
+          dim_min / data.dimensions[0] as f32,
+          dim_min / data.dimensions[1] as f32,
+        ],
+      );
+      wgpu.with_encoder(|encoder| {
+        encoder
+          .compute_pass()
+          .with_pipeline(&inner.compute_pipeline)
+          .with_bind_groups([&inner.compute_bind_group])
+          .dispatch(POINT_GROUP_MULTIPLE as u32, 1, 1);
+        encoder
+          .simple_render_pass(&surface_view)
+          .with_bind_groups([
+            &inner.uniform_bind_group,
+            &inner.render_points_bind_group,
+          ])
+          .with_vertex_buffer(0, &inner.corner_vertex_buffer)
+          .with_pipeline(&inner.render_pipeline)
+          .draw(0..6, 0..POINTS as u32);
+      })
+    }
   }
 }
