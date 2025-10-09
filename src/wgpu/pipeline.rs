@@ -120,6 +120,12 @@ impl<'w, 'window, 's, 'v, 'b, 'p, 'shader>
       .with_fragment_compilation_options(options.clone())
       .with_vertex_compilation_options(options)
   }
+  pub fn with_override_constants(self, constants: &'p [(&str, f64)]) -> Self {
+    self.with_compilation_options(PipelineCompilationOptions {
+      constants: constants,
+      zero_initialize_workgroup_memory: true,
+    })
+  }
   pub fn build_with_shader_entry_points<'vs, 'fs>(
     self,
     shader: &ShaderModule,
@@ -140,7 +146,7 @@ impl<'w, 'window, 's, 'v, 'b, 'p, 'shader>
           &wgpu::PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &self.bind_group_layouts,
-            push_constant_ranges: &[], // todo! handle these
+            push_constant_ranges: &[],
           },
         )),
         vertex: wgpu::VertexState {
@@ -149,7 +155,7 @@ impl<'w, 'window, 's, 'v, 'b, 'p, 'shader>
           buffers: &self.vertex_buffer_layouts,
           compilation_options: self
             .vertex_compilation_options
-            .unwrap_or_else(|| Default::default()),
+            .unwrap_or_default(),
         },
         fragment: fragment_entry_point.map(|fragment| FragmentState {
           module: &shader,
@@ -157,7 +163,7 @@ impl<'w, 'window, 's, 'v, 'b, 'p, 'shader>
           targets: fragment_targets,
           compilation_options: self
             .fragment_compilation_options
-            .unwrap_or_else(|| Default::default()),
+            .unwrap_or_default(),
         }),
         primitive: self.primitive.unwrap_or(wgpu::PrimitiveState {
           topology: wgpu::PrimitiveTopology::TriangleList,
@@ -195,7 +201,7 @@ impl<'w, 'window, 's, 'v, 'b, 'p, 'shader>
           &wgpu::PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &self.bind_group_layouts,
-            push_constant_ranges: &[], // todo! handle these
+            push_constant_ranges: &[],
           },
         )),
         vertex: self.vertex.expect(
@@ -224,18 +230,20 @@ impl<'w, 'window, 's, 'v, 'b, 'p, 'shader>
   }
 }
 
-pub struct ComputePipelineBuilder<'w, 'window, 's, 'b> {
+pub struct ComputePipelineBuilder<'w, 'p, 'window, 's, 'b> {
   wgpu: &'w WGPUController<'window>,
   label: Option<&'s str>,
   bind_group_layouts: Vec<&'b BindGroupLayout>,
+  compilation_options: Option<PipelineCompilationOptions<'p>>,
 }
 
-impl<'w, 'window, 's, 'b> ComputePipelineBuilder<'w, 'window, 's, 'b> {
+impl<'w, 'p, 'window, 's, 'b> ComputePipelineBuilder<'w, 'p, 'window, 's, 'b> {
   pub fn new(wgpu: &'w WGPUController<'window>) -> Self {
     Self {
       wgpu,
       label: None,
       bind_group_layouts: vec![],
+      compilation_options: None,
     }
   }
   pub fn with_label(mut self, label: &'s str) -> Self {
@@ -260,16 +268,29 @@ impl<'w, 'window, 's, 'b> ComputePipelineBuilder<'w, 'window, 's, 'b> {
           &wgpu::PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &self.bind_group_layouts,
-            push_constant_ranges: &[], // todo! handle these
+            push_constant_ranges: &[],
           },
         )),
         module: shader,
         entry_point: entry_point,
-        compilation_options: Default::default(),
+        compilation_options: self.compilation_options.unwrap_or_default(),
         cache: None,
       })
   }
   pub fn build_with_shader(self, shader: &ShaderModule) -> ComputePipeline {
     self.build_with_shader_entry_point(shader, None)
+  }
+  pub fn with_compilation_options(
+    mut self,
+    options: PipelineCompilationOptions<'p>,
+  ) -> Self {
+    self.compilation_options = Some(options);
+    self
+  }
+  pub fn with_override_constants(self, constants: &'p [(&str, f64)]) -> Self {
+    self.with_compilation_options(PipelineCompilationOptions {
+      constants: constants,
+      zero_initialize_workgroup_memory: true,
+    })
   }
 }

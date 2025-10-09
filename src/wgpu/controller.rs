@@ -42,15 +42,14 @@ impl<'window> WGPUController<'window> {
       .await
       .unwrap();
     let (device, queue) = adapter
-      .request_device(
-        &wgpu::DeviceDescriptor {
-          required_features: features,
-          required_limits: wgpu::Limits::default(),
-          label: None,
-          memory_hints: Default::default(),
-        },
-        None,
-      )
+      .request_device(&wgpu::DeviceDescriptor {
+        required_features: features,
+        required_limits: wgpu::Limits::default(),
+        label: None,
+        memory_hints: Default::default(),
+        experimental_features: wgpu::ExperimentalFeatures::disabled(),
+        trace: wgpu::Trace::Off,
+      })
       .await
       .unwrap();
     let surface_capabilities = surface.get_capabilities(&adapter);
@@ -116,7 +115,7 @@ impl<'window> WGPUController<'window> {
   pub fn build_array_buffer_owned<T: NoUninit>(
     &self,
     contents: Vec<T>,
-  ) -> ArrayBufferBuilder<T> {
+  ) -> ArrayBufferBuilder<'_, '_, '_, '_, T> {
     ArrayBufferBuilder::from_owned_contents(self, contents)
   }
   pub fn build_array_buffer<'a, T: NoUninit>(
@@ -141,7 +140,7 @@ impl<'window> WGPUController<'window> {
   pub fn build_empty_array_buffer<T: NoUninit + Zeroable>(
     &self,
     size: usize,
-  ) -> ArrayBufferBuilder<T> {
+  ) -> ArrayBufferBuilder<'_, '_, '_, '_, T> {
     ArrayBufferBuilder::empty(self, size)
   }
   pub fn empty_array_buffer<T: NoUninit + Zeroable>(
@@ -183,16 +182,22 @@ impl<'window> WGPUController<'window> {
       .write_buffer(buffer, index, bytemuck::cast_slice(data));
     self
   }
-  pub fn build_render_pipeline(&self) -> RenderPipelineBuilder {
+  pub fn build_render_pipeline(
+    &self,
+  ) -> RenderPipelineBuilder<'_, '_, '_, '_, '_, '_, '_> {
     RenderPipelineBuilder::new(self)
   }
-  pub fn build_compute_pipeline(&self) -> ComputePipelineBuilder {
+  pub fn build_compute_pipeline(
+    &self,
+  ) -> ComputePipelineBuilder<'_, '_, '_, '_, '_> {
     ComputePipelineBuilder::new(self)
   }
-  pub fn build_bind_group_layout(&self) -> BindGroupLayoutBuilder {
+  pub fn build_bind_group_layout(&self) -> BindGroupLayoutBuilder<'_, '_, '_> {
     BindGroupLayoutBuilder::new(self)
   }
-  pub fn build_bind_group_with_layout(&self) -> BindGroupWithLayoutBuilder {
+  pub fn build_bind_group_with_layout(
+    &self,
+  ) -> BindGroupWithLayoutBuilder<'_, '_, '_, '_, '_> {
     BindGroupWithLayoutBuilder::new(self)
   }
   pub fn with_encoder(&self, mut f: impl FnMut(&mut CommandEncoder)) {

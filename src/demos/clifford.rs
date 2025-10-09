@@ -1,20 +1,16 @@
 use crate::{
-  include_prefixed_wgsl,
   sketch::{FrameData, Sketch},
   wgpu::{
     bind::BindGroupWithLayout,
     buffer::{ArrayBuffer, Buffer},
     controller::WGPUController,
   },
-  wgsl_constants_string,
 };
 use rand::Rng;
-use wgpu::{ComputePipeline, RenderPipeline, TextureView};
+use wgpu::{include_wgsl, ComputePipeline, RenderPipeline, TextureView};
 
-const A: f32 = -1.4;
-const B: f32 = 1.6;
-const C: f32 = 1.;
-const D: f32 = 0.7;
+const PARAMS: &[(&str, f64)] =
+  &[("A", -1.4), ("B", 1.6), ("C", 1.), ("D", 0.7)];
 
 const POINT_GROUP_MULTIPLE: usize = 1000;
 const POINTS: usize = 256 * POINT_GROUP_MULTIPLE;
@@ -38,10 +34,10 @@ impl CliffordSketch {
 impl Sketch for CliffordSketch {
   fn init(&mut self, wgpu: &WGPUController) {
     let scale_buffer = wgpu.buffer([0., 0.]);
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let point_buffer = wgpu.array_buffer(
       &std::iter::repeat_with(|| {
-        [rng.gen::<f32>() * 2. - 1., rng.gen::<f32>() * 2. - 1.]
+        [rng.random::<f32>() * 2. - 1., rng.random::<f32>() * 2. - 1.]
       })
       .take(POINTS)
       .collect::<Vec<_>>(),
@@ -80,10 +76,8 @@ impl Sketch for CliffordSketch {
     let compute_pipeline = wgpu
       .build_compute_pipeline()
       .add_bind_group_layout(&compute_bind_group.layout)
-      .build_with_shader(&wgpu.shader(include_prefixed_wgsl!(
-        "clifford_compute.wgsl",
-        wgsl_constants_string!(A: f32, B: f32, C: f32, D: f32)
-      )));
+      .with_override_constants(&PARAMS)
+      .build_with_shader(&wgpu.shader(include_wgsl!("clifford_compute.wgsl")));
     self.0 = Some(CliffordSketchInner {
       scale_buffer,
       uniform_bind_group,

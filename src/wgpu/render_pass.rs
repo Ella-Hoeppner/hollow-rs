@@ -54,6 +54,7 @@ impl<'e, 's, 'query: 'e, 'tex: 'e, 'desc>
         load: wgpu::LoadOp::Load,
         store: wgpu::StoreOp::Store,
       },
+      depth_slice: None,
     }))
   }
   pub fn add_clearing_color_attachment<'v: 'e + 'tex>(
@@ -68,6 +69,7 @@ impl<'e, 's, 'query: 'e, 'tex: 'e, 'desc>
         load: wgpu::LoadOp::Clear(color),
         store: wgpu::StoreOp::Store,
       },
+      depth_slice: None,
     }))
   }
   pub fn with_depth_stencil_attachment(

@@ -2,21 +2,16 @@
 @group(0) @binding(1) var<uniform> time: f32;
 
 struct VertexInput {
-  @location(0) corner_position: vec2f,
+    @location(0) corner_position: vec2f,
 }
 
-struct VertexOutput {
-  @builtin(position) vertex_pos: vec4f,
-};
-
 @vertex
-fn vertex(in: VertexInput) -> VertexOutput {
-  return VertexOutput(vec4f(in.corner_position, 0.0, 1.0));
+fn vertex(in: VertexInput) -> @builtin(position) vec4f {
+    return vec4f(in.corner_position, 0.0, 1.0);
 }
 
 @fragment
-fn fragment(in: VertexOutput) -> @location(0) vec4f {
-  let pos = in.vertex_pos.xy/dimensions;
-  let osc = sin(time*9.)*0.5+0.5;
-  return vec4f(pow(vec3f(pos, osc),vec3f(2.2)), 1.);
+fn fragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+    let osc = sin(time * 9.) * 0.5 + 0.5;
+    return vec4f(pow(vec3f(pos.xy / dimensions, osc), vec3f(2.2)), 1.);
 }
