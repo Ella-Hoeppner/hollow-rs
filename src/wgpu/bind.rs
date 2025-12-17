@@ -2,8 +2,9 @@ use std::{num::NonZero, ops::Deref};
 
 use wgpu::{
   BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor,
-  BindGroupLayoutEntry, BindingResource, BindingType, ShaderStages,
-  TextureSampleType, TextureView, TextureViewDimension,
+  BindGroupLayoutEntry, BindingResource, BindingType, Sampler,
+  SamplerBindingType, ShaderStages, TextureSampleType, TextureView,
+  TextureViewDimension,
 };
 
 use super::controller::WGPUController;
@@ -173,6 +174,13 @@ impl<'l, 's, 'a, 'w, 'window> BindGroupBuilder<'l, 's, 'a, 'w, 'window> {
     });
     self
   }
+  pub fn with_sampler_entry<'b: 'a>(mut self, sampler: &'b Sampler) -> Self {
+    self.entries.push(BindGroupEntry {
+      binding: self.entries.len() as u32,
+      resource: BindingResource::Sampler(sampler),
+    });
+    self
+  }
   pub fn with_raw_entry(mut self, entry: BindGroupEntry<'a>) -> Self {
     self.entries.push(entry);
     self
@@ -273,14 +281,50 @@ impl<'s, 'l, 'a, 'w, 'window>
   ) -> Self {
     self.layout_builder = self.layout_builder.with_entry(
       BindGroupLayoutEntryBuilder::new()
-        .with_visibility(ShaderStages::FRAGMENT)
+        .with_visibility(ShaderStages::all())
         .with_ty(BindingType::Texture {
-          sample_type: TextureSampleType::Float { filterable: false },
+          sample_type: texture_view
+            .texture()
+            .format()
+            .sample_type(None, None)
+            .unwrap_or(TextureSampleType::Float { filterable: false }),
           view_dimension: TextureViewDimension::D2,
           multisampled: false,
         }),
     );
     self.group_builder = self.group_builder.with_texture_entry(texture_view);
+    self
+  }
+  pub fn with_texture_entry_of_sample_type<'b: 'a>(
+    mut self,
+    texture_view: &'b TextureView,
+    sample_type: TextureSampleType,
+  ) -> Self {
+    self.layout_builder = self.layout_builder.with_entry(
+      BindGroupLayoutEntryBuilder::new()
+        .with_visibility(ShaderStages::all())
+        .with_ty(BindingType::Texture {
+          sample_type,
+          view_dimension: TextureViewDimension::D2,
+          multisampled: false,
+        }),
+    );
+    self.group_builder = self.group_builder.with_texture_entry(texture_view);
+    self
+  }
+  pub fn with_sampler_entry<'b: 'a>(
+    mut self,
+    sampler: &'b Sampler,
+    binding_type: Option<SamplerBindingType>,
+  ) -> Self {
+    self.layout_builder = self.layout_builder.with_entry(
+      BindGroupLayoutEntryBuilder::new()
+        .with_visibility(ShaderStages::all())
+        .with_ty(BindingType::Sampler(
+          binding_type.unwrap_or(SamplerBindingType::Filtering),
+        )),
+    );
+    self.group_builder = self.group_builder.with_sampler_entry(sampler);
     self
   }
   pub fn with_uniform_buffer_entry<'b: 'a, B: Into<&'b wgpu::Buffer>>(
