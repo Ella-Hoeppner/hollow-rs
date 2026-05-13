@@ -105,6 +105,7 @@ impl<'e, 's, 'query: 'e, 'tex: 'e, 'desc>
         depth_stencil_attachment: self.depth_stencil_attachment,
         occlusion_query_set: self.occlusion_query_set,
         timestamp_writes: self.timestamp_writes,
+        multiview_mask: None,
       },
     ))
   }

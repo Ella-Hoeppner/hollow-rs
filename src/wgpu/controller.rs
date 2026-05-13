@@ -28,9 +28,9 @@ impl<'window> WGPUController<'window> {
     features: Features,
   ) -> Self {
     let size = window.inner_size();
-    let wgpu_instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+    let wgpu_instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
       backends: wgpu::Backends::all(),
-      ..Default::default()
+      ..wgpu::InstanceDescriptor::new_without_display_handle()
     });
     let surface = wgpu_instance.create_surface(window.clone()).unwrap();
     let adapter = wgpu_instance

@@ -13,7 +13,7 @@ use super::controller::WGPUController;
 pub struct RenderPipelineBuilder<'w, 'window, 's, 'v, 'b, 'p, 'shader> {
   wgpu: &'w WGPUController<'window>,
   label: Option<&'s str>,
-  bind_group_layouts: Vec<&'b BindGroupLayout>,
+  bind_group_layouts: Vec<Option<&'b BindGroupLayout>>,
   vertex_buffer_layouts: Vec<VertexBufferLayout<'v>>,
   vertex: Option<VertexState<'shader>>,
   fragment: Option<FragmentState<'shader>>,
@@ -53,7 +53,7 @@ impl<'w, 'window, 's, 'v, 'b, 'p, 'shader>
     self
   }
   pub fn add_bind_group_layout(mut self, layout: &'b BindGroupLayout) -> Self {
-    self.bind_group_layouts.push(layout);
+    self.bind_group_layouts.push(Some(layout));
     self
   }
   pub fn with_vertex(mut self, vertex: VertexState<'shader>) -> Self {
@@ -146,7 +146,7 @@ impl<'w, 'window, 's, 'v, 'b, 'p, 'shader>
           &wgpu::PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &self.bind_group_layouts,
-            push_constant_ranges: &[],
+            immediate_size: 0,
           },
         )),
         vertex: wgpu::VertexState {
@@ -180,7 +180,7 @@ impl<'w, 'window, 's, 'v, 'b, 'p, 'shader>
           mask: !0,
           alpha_to_coverage_enabled: false,
         }),
-        multiview: self.multiview,
+        multiview_mask: self.multiview,
         cache: None,
       })
   }
@@ -201,7 +201,7 @@ impl<'w, 'window, 's, 'v, 'b, 'p, 'shader>
           &wgpu::PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &self.bind_group_layouts,
-            push_constant_ranges: &[],
+            immediate_size: 0,
           },
         )),
         vertex: self.vertex.expect(
@@ -224,7 +224,7 @@ impl<'w, 'window, 's, 'v, 'b, 'p, 'shader>
           mask: !0,
           alpha_to_coverage_enabled: false,
         }),
-        multiview: self.multiview,
+        multiview_mask: self.multiview,
         cache: None,
       })
   }
@@ -233,7 +233,7 @@ impl<'w, 'window, 's, 'v, 'b, 'p, 'shader>
 pub struct ComputePipelineBuilder<'w, 'p, 'window, 's, 'b> {
   wgpu: &'w WGPUController<'window>,
   label: Option<&'s str>,
-  bind_group_layouts: Vec<&'b BindGroupLayout>,
+  bind_group_layouts: Vec<Option<&'b BindGroupLayout>>,
   compilation_options: Option<PipelineCompilationOptions<'p>>,
 }
 
@@ -251,7 +251,7 @@ impl<'w, 'p, 'window, 's, 'b> ComputePipelineBuilder<'w, 'p, 'window, 's, 'b> {
     self
   }
   pub fn add_bind_group_layout(mut self, layout: &'b BindGroupLayout) -> Self {
-    self.bind_group_layouts.push(layout);
+    self.bind_group_layouts.push(Some(layout));
     self
   }
   pub fn build_with_shader_entry_point<'cs>(
@@ -268,7 +268,7 @@ impl<'w, 'p, 'window, 's, 'b> ComputePipelineBuilder<'w, 'p, 'window, 's, 'b> {
           &wgpu::PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &self.bind_group_layouts,
-            push_constant_ranges: &[],
+            immediate_size: 0,
           },
         )),
         module: shader,

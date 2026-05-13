@@ -105,47 +105,49 @@ impl<S: Sketch> ApplicationHandler for SketchRunner<'_, S> {
     event: WindowEvent,
   ) {
     if let SketchRunner::Initialized(app) = self {
-      let frame = |app: &mut SketchApp<'_, S>| match app
-        .wgpu
-        .surface
-        .get_current_texture()
-      {
-        Err(err) => Err(err),
-        Ok(surface_texture) => {
-          let surface_view = surface_texture
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-          let min_dim = app.surface_pixel_dimensions[0]
-            .min(app.surface_pixel_dimensions[1])
-            as f32;
-          Ok((
-            surface_texture,
-            surface_view,
-            FrameData {
-              dimensions: app.surface_pixel_dimensions,
-              t: app.time(),
-              delta_t: app.delta_time(),
-              mouse_pos: app.mouse_pos.map(|mouse_pos| {
-                (
-                  (app.surface_pixel_dimensions[0] as f32 / min_dim)
-                    * ((2.
-                      * (mouse_pos.0
-                        / app.surface_pixel_dimensions[0] as f32))
-                      - 1.),
-                  (app.surface_pixel_dimensions[1] as f32 / min_dim)
-                    * ((2.
-                      * (mouse_pos.1
-                        / app.surface_pixel_dimensions[1] as f32))
-                      - 1.),
-                )
-              }),
-              frame_index: app.frame_index,
-              scroll_delta: (app.scroll_delta[0], app.scroll_delta[1]),
-              mouse_down: app.mouse_down,
-              down_keys: app.down_keys.clone(),
-            },
-          ))
-        }
+      // Returns Ok(Some(...)) on success, Ok(None) to skip the frame,
+      // and Err(()) when the surface needs reconfiguring.
+      let frame = |app: &mut SketchApp<'_, S>| {
+        let surface_texture = match app.wgpu.surface.get_current_texture() {
+          wgpu::CurrentSurfaceTexture::Success(t)
+          | wgpu::CurrentSurfaceTexture::Suboptimal(t) => t,
+          wgpu::CurrentSurfaceTexture::Lost
+          | wgpu::CurrentSurfaceTexture::Outdated => return Err(()),
+          _ => return Ok(None),
+        };
+        let surface_view = surface_texture
+          .texture
+          .create_view(&wgpu::TextureViewDescriptor::default());
+        let min_dim = app.surface_pixel_dimensions[0]
+          .min(app.surface_pixel_dimensions[1])
+          as f32;
+        Ok(Some((
+          surface_texture,
+          surface_view,
+          FrameData {
+            dimensions: app.surface_pixel_dimensions,
+            t: app.time(),
+            delta_t: app.delta_time(),
+            mouse_pos: app.mouse_pos.map(|mouse_pos| {
+              (
+                (app.surface_pixel_dimensions[0] as f32 / min_dim)
+                  * ((2.
+                    * (mouse_pos.0
+                      / app.surface_pixel_dimensions[0] as f32))
+                    - 1.),
+                (app.surface_pixel_dimensions[1] as f32 / min_dim)
+                  * ((2.
+                    * (mouse_pos.1
+                      / app.surface_pixel_dimensions[1] as f32))
+                    - 1.),
+              )
+            }),
+            frame_index: app.frame_index,
+            scroll_delta: (app.scroll_delta[0], app.scroll_delta[1]),
+            mouse_down: app.mouse_down,
+            down_keys: app.down_keys.clone(),
+          },
+        )))
       };
       match event {
         WindowEvent::CloseRequested => event_loop.exit(),
@@ -155,11 +157,11 @@ impl<S: Sketch> ApplicationHandler for SketchRunner<'_, S> {
         WindowEvent::RedrawRequested => {
           app.update();
           match frame(app) {
-            Err(wgpu::SurfaceError::Lost) => {
-              app.resize(app.window.inner_size())
+            Err(()) => {
+              app.resize(app.window.inner_size());
             }
-            Err(err) => panic!("{err:?}"),
-            Ok((surface_texture, surface_view, frame_data)) => {
+            Ok(None) => {}
+            Ok(Some((surface_texture, surface_view, frame_data))) => {
               app.sketch.update(&app.wgpu, surface_view, frame_data);
               surface_texture.present();
               app.frame_index += 1;
@@ -203,7 +205,7 @@ impl<S: Sketch> ApplicationHandler for SketchRunner<'_, S> {
             match pressed_or_released {
               ElementState::Pressed => {
                 app.down_keys.insert(char.clone());
-                if let Ok((_, _, frame_data)) = frame(app) {
+                if let Ok(Some((_, _, frame_data))) = frame(app) {
                   app.sketch.key_down(&char, frame_data);
                 }
               }
