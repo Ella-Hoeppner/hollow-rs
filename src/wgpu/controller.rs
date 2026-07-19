@@ -44,7 +44,7 @@ impl<'window> WGPUController<'window> {
     let (device, queue) = adapter
       .request_device(&wgpu::DeviceDescriptor {
         required_features: features,
-        required_limits: wgpu::Limits::default(),
+        required_limits: adapter.limits(),
         label: None,
         memory_hints: Default::default(),
         experimental_features: wgpu::ExperimentalFeatures::disabled(),
